@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Boutique · Gestión</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --tc: #C4714A; --tc-dk: #A35A35; --tc-lt: #D9896B;
+      --bg: #F5EDE0; --bg2: #EDE0CF; --bg3: #E0D0BB;
+      --txt: #2C1A10; --txt2: #7A5240;
+      --gold: #C9A96E; --wh: #FDFAF6;
+      --ok: #5F8E5F; --err: #C44A4A; --warn: #C49A2A;
+      --sh: 0 2px 12px rgba(44,26,16,.10);
+      --r: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Cormorant Garamond', Georgia, serif; background: var(--bg); color: var(--txt); min-height: 100vh; font-size: 16px; line-height: 1.5; }
+
+    /* ─── LOGIN ─── */
+    #login-overlay { position: fixed; inset: 0; background: rgba(44,26,16,.75); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .login-card { background: var(--wh); border-radius: var(--r); padding: 2.5rem 2rem; width: 90%; max-width: 360px; text-align: center; box-shadow: 0 8px 40px rgba(44,26,16,.3); }
+    .login-card h1 { font-size: 2rem; font-weight: 600; color: var(--tc); letter-spacing: .08em; font-style: italic; }
+    .login-card p { font-size: .9rem; color: var(--txt2); margin: .25rem 0 1.5rem; font-style: italic; }
+    .login-card input { width: 100%; padding: .75rem 1rem; border: 1.5px solid var(--bg3); border-radius: 8px; font-family: inherit; font-size: 1rem; background: var(--bg); color: var(--txt); margin-bottom: 1rem; text-align: center; letter-spacing: .12em; }
+    .login-card input:focus { outline: none; border-color: var(--tc); }
+    .login-err { color: var(--err); font-size: .82rem; margin-top: .4rem; display: none; }
+    .login-pub { display: block; margin-top: .85rem; font-size: .85rem; color: var(--txt2); cursor: pointer; }
+    .login-pub:hover { color: var(--tc); }
+
+    /* ─── BUTTONS ─── */
+    .btn { display: inline-block; padding: .65rem 1.4rem; border: none; border-radius: 8px; font-family: inherit; font-size: .95rem; font-weight: 500; cursor: pointer; transition: all .18s; letter-spacing: .04em; }
+    .btn-primary { background: var(--tc); color: #fff; width: 100%; }
+    .btn-primary:hover { background: var(--tc-dk); }
+    .btn-secondary { background: var(--bg2); color: var(--txt); }
+    .btn-secondary:hover { background: var(--bg3); }
+    .btn-danger { background: var(--err); color: #fff; width: 100%; }
+    .btn-danger:hover { opacity: .85; }
+    .btn-sm { padding: .3rem .7rem; font-size: .8rem; }
+
+    /* ─── TOP NAV ─── */
+    #top-nav { position: sticky; top: 0; z-index: 100; background: var(--wh); box-shadow: var(--sh); display: none; align-items: center; justify-content: space-between; padding: .7rem 1rem; }
+    .nav-brand { font-size: 1.25rem; font-weight: 600; color: var(--tc); letter-spacing: .1em; font-style: italic; }
+    .nav-actions { display: flex; gap: .4rem; }
+    .nav-btn { font-family: inherit; font-size: .78rem; padding: .3rem .7rem; border-radius: 20px; border: 1.5px solid var(--tc); background: transparent; color: var(--tc); cursor: pointer; font-weight: 500; }
+    .nav-btn.active, .nav-btn:hover { background: var(--tc); color: #fff; }
+    .nav-btn.exit { border-color: var(--err); color: var(--err); }
+    .nav-btn.exit:hover { background: var(--err); color: #fff; }
+
+    /* ─── VIEWS ─── */
+    #view-public, #view-private { display: none; }
+    #view-public.on, #view-private.on { display: block; }
+
+    /* ─── PUBLIC CATALOG ─── */
+    .cat-banner { background: linear-gradient(135deg, var(--tc) 0%, var(--tc-dk) 100%); color: #fff; padding: 2.5rem 1rem; text-align: center; }
+    .cat-banner h1 { font-size: 2.2rem; font-weight: 600; letter-spacing: .15em; }
+    .cat-banner p { font-style: italic; opacity: .85; font-size: .95rem; margin-top: .2rem; }
+    .chip-bar { display: flex; gap: .5rem; overflow-x: auto; background: var(--bg2); padding: .75rem 1rem; -webkit-overflow-scrolling: touch; }
+    .chip { white-space: nowrap; padding: .35rem .9rem; border-radius: 20px; border: 1.5px solid var(--bg3); background: var(--wh); font-family: inherit; font-size: .82rem; cursor: pointer; color: var(--txt2); flex-shrink: 0; }
+    .chip.on { background: var(--tc); color: #fff; border-color: var(--tc); }
+    .cat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: .75rem; padding: 1rem; }
+    .cat-card { background: var(--wh); border-radius: var(--r); overflow: hidden; box-shadow: var(--sh); }
+    .cat-card-img { height: 110px; display: flex; align-items: center; justify-content: center; font-size: 2.8rem; background: var(--bg2); }
+    .cat-card-body { padding: .75rem; }
+    .cat-card-name { font-weight: 600; font-size: .95rem; line-height: 1.2; margin-bottom: .2rem; }
+    .cat-card-sub { font-size: .75rem; color: var(--txt2); font-style: italic; margin-bottom: .35rem; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: .2rem; margin-bottom: .35rem; }
+    .tag { font-size: .68rem; padding: .12rem .45rem; border-radius: 10px; background: var(--bg2); color: var(--txt2); }
+    .cat-price { font-size: 1.05rem; font-weight: 600; color: var(--tc); }
+    .sbadge { font-size: .68rem; padding: .12rem .45rem; border-radius: 10px; font-weight: 500; }
+    .s-ok { background: #d4edda; color: #1d5e30; }
+    .s-low { background: #fff3cd; color: #7a5a00; }
+    .s-out { background: #f8d7da; color: #7a1a1a; }
+
+    /* ─── TABS ─── */
+    .tab-bar { display: flex; background: var(--wh); border-bottom: 2px solid var(--bg3); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tab-btn { flex: 1; min-width: 68px; padding: .7rem .4rem; border: none; background: transparent; font-family: inherit; font-size: .78rem; cursor: pointer; color: var(--txt2); border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: 500; white-space: nowrap; }
+    .tab-btn.on { color: var(--tc); border-bottom-color: var(--tc); }
+    .tab-pane { display: none; padding: 1rem; padding-bottom: 5rem; }
+    .tab-pane.on { display: block; }
+
+    /* ─── METRICS ─── */
+    .metric-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .metric-card { background: var(--wh); border-radius: var(--r); padding: .875rem; box-shadow: var(--sh); }
+    .metric-lbl { font-size: .7rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .2rem; }
+    .metric-val { font-size: 1.35rem; font-weight: 600; color: var(--tc); line-height: 1.1; }
+    .metric-sub { font-size: .72rem; color: var(--txt2); margin-top: .12rem; }
+
+    /* ─── SECTION ─── */
+    .sec-title { font-size: 1.05rem; font-weight: 600; color: var(--tc); margin-bottom: .6rem; letter-spacing: .05em; border-bottom: 1px solid var(--bg3); padding-bottom: .35rem; }
+    .sec-box { background: var(--wh); border-radius: var(--r); padding: 1rem .875rem; box-shadow: var(--sh); margin-bottom: 1rem; }
+
+    /* ─── ALERTS ─── */
+    .alert { padding: .55rem .875rem; border-radius: 8px; font-size: .82rem; margin-bottom: .45rem; display: flex; align-items: center; gap: .4rem; }
+    .a-ok  { background: #d4edda; color: #1d5e30; border-left: 3px solid var(--ok); }
+    .a-err { background: #f8d7da; color: #7a1a1a; border-left: 3px solid var(--err); }
+    .a-wrn { background: #fff3cd; color: #7a5a00; border-left: 3px solid var(--warn); }
+
+    /* ─── TABLES ─── */
+    .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--r); box-shadow: var(--sh); }
+    table { width: 100%; border-collapse: collapse; background: var(--wh); font-size: .83rem; }
+    thead th { background: var(--bg2); color: var(--txt2); font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; padding: .55rem .7rem; text-align: left; font-weight: 600; white-space: nowrap; }
+    tbody td { padding: .55rem .7rem; border-bottom: 1px solid var(--bg2); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg); }
+    .tr { text-align: right; }
+
+    /* ─── FORMS ─── */
+    .form-card { background: var(--wh); border-radius: var(--r); padding: 1.1rem 1rem; box-shadow: var(--sh); margin-bottom: 1.1rem; }
+    .f-row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin-bottom: .65rem; }
+    .f-row.full { grid-template-columns: 1fr; }
+    .f-grp { display: flex; flex-direction: column; gap: .25rem; }
+    .f-grp label { font-size: .72rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .f-grp input, .f-grp select { font-family: inherit; font-size: .92rem; padding: .55rem .7rem; border: 1.5px solid var(--bg3); border-radius: 8px; background: var(--bg); color: var(--txt); }
+    .f-grp input:focus, .f-grp select:focus { outline: none; border-color: var(--tc); }
+
+    /* ─── VENTA PREVIEW ─── */
+    .v-preview { background: var(--bg2); border-radius: 10px; padding: .875rem; margin: .65rem 0; display: none; }
+    .v-preview.on { display: block; }
+    .pv-row { display: flex; justify-content: space-between; font-size: .88rem; padding: .18rem 0; }
+    .pv-row.tot { border-top: 1px solid var(--bg3); margin-top: .4rem; padding-top: .4rem; font-size: .95rem; font-weight: 600; color: var(--tc); }
+
+    /* ─── CAT SUMMARY ─── */
+    .cat-sum { background: var(--wh); border-radius: var(--r); overflow: hidden; box-shadow: var(--sh); }
+    .cs-row { display: flex; justify-content: space-between; align-items: center; padding: .55rem .9rem; border-bottom: 1px solid var(--bg2); font-size: .88rem; }
+    .cs-row:last-child { border-bottom: none; }
+
+    /* ─── RESULTS ─── */
+    .er-row { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid var(--bg2); font-size: .88rem; }
+    .er-row:last-child { border-bottom: none; }
+    .er-row.hl { background: var(--bg); padding: .5rem .65rem; border-radius: 6px; margin: .2rem -.65rem; }
+    .lbl { color: var(--txt2); }
+    .val { font-weight: 600; }
+    .val.pos { color: var(--ok); }
+    .val.neg { color: var(--err); }
+    .val.tc { color: var(--tc); }
+
+    /* ─── MODAL ─── */
+    .modal-ov { position: fixed; inset: 0; background: rgba(44,26,16,.6); display: flex; align-items: flex-end; justify-content: center; z-index: 500; backdrop-filter: blur(2px); }
+    .modal-ov.hide { display: none; }
+    .modal { background: var(--wh); border-radius: var(--r) var(--r) 0 0; width: 100%; max-width: 500px; padding: 1.4rem 1rem; max-height: 90vh; overflow-y: auto; }
+    .modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .modal-hdr h3 { font-size: 1.15rem; font-weight: 600; color: var(--tc); }
+    .modal-cls { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--txt2); }
+    .modal-acts { display: flex; gap: .65rem; margin-top: .875rem; }
+    .modal-acts .btn { flex: 1; }
+
+    /* ─── UTILS ─── */
+    .fab { position: fixed; bottom: 1.4rem; right: 1.4rem; width: 50px; height: 50px; border-radius: 50%; background: var(--tc); color: #fff; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 16px rgba(196,113,74,.4); display: flex; align-items: center; justify-content: center; z-index: 200; }
+    .fab:hover { background: var(--tc-dk); }
+    .empty { text-align: center; padding: 2.5rem 1rem; color: var(--txt2); }
+    .empty .ico { font-size: 2.8rem; margin-bottom: .6rem; }
+    .empty p { font-style: italic; font-size: .9rem; }
+    .mt1 { margin-top: 1rem; }
+    .fw6 { font-weight: 600; }
+    .sm { font-size: .75rem; }
+    .c-tc { color: var(--tc); }
+    .c-ok { color: var(--ok); }
+    .c-err { color: var(--err); }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay">
+  <div class="login-card">
+    <h1>✦ Boutique</h1>
+    <p>Gestión privada de tienda</p>
+    <input type="password" id="li" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-primary" onclick="doLogin()">Ingresar</button>
+    <div class="login-err" id="lerr">Contraseña incorrecta</div>
+    <span class="login-pub" onclick="showPublic()">Ver catálogo público →</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="top-nav">
+  <div class="nav-brand">✦ Boutique</div>
+  <div class="nav-actions">
+    <button class="nav-btn" id="nb-pub" onclick="switchView('public')">Catálogo</button>
+    <button class="nav-btn" id="nb-prv" onclick="switchView('private')">Gestión</button>
+    <button class="nav-btn exit" id="nb-exit" onclick="logout()">Salir</button>
+  </div>
+</nav>
+
+<!-- PUBLIC -->
+<div id="view-public">
+  <div class="cat-banner">
+    <h1 id="banner-name">Mi Boutique</h1>
+    <p>Ropa femenina · Bolivia</p>
+  </div>
+  <div class="chip-bar" id="pub-chips"></div>
+  <div class="cat-grid" id="pub-grid"></div>
+</div>
+
+<!-- PRIVATE -->
+<div id="view-private">
+  <div class="tab-bar">
+    <button class="tab-btn on"  onclick="goTab('resumen')">Resumen</button>
+    <button class="tab-btn"     onclick="goTab('resultados')">Resultados</button>
+    <button class="tab-btn"     onclick="goTab('ventas')">Ventas</button>
+    <button class="tab-btn"     onclick="goTab('inventario')">Inventario</button>
+    <button class="tab-btn"     onclick="goTab('compras')">Compras</button>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="tab-pane on" id="tp-resumen">
+    <div class="metric-grid" id="metrics"></div>
+    <div id="alertas"></div>
+    <div class="sec-title mt1">Por categoría</div>
+    <div class="cat-sum" id="cat-sum"></div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div class="tab-pane" id="tp-resultados">
+    <div class="sec-box">
+      <div class="sec-title">Estado de Resultados</div>
+      <div id="er"></div>
+    </div>
+    <div class="sec-title">Utilidad por Producto</div>
+    <div class="tbl-wrap" id="util-tbl"></div>
+  </div>
+
+  <!-- VENTAS -->
+  <div class="tab-pane" id="tp-ventas">
+    <div class="form-card">
+      <div class="sec-title">Registrar Venta</div>
+      <div class="f-row full">
+        <div class="f-grp">
+          <label>Producto</label>
+          <select id="v-prod" onchange="prevVenta()"><option value="">— Seleccionar —</option></select>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-grp"><label>Cantidad</label><input type="number" id="v-cant" min="1" value="1" oninput="prevVenta()"></div>
+        <div class="f-grp"><label>Precio Venta (Bs.)</label><input type="number" id="v-pv" min="0" step="0.5" oninput="prevVenta()"></div>
+      </div>
+      <div class="v-preview" id="vprev">
+        <div class="pv-row"><span>Subtotal</span><span id="pv-sub">—</span></div>
+        <div class="pv-row"><span>Costo</span><span id="pv-cos">—</span></div>
+        <div class="pv-row"><span>Utilidad</span><span id="pv-util">—</span></div>
+        <div class="pv-row tot"><span>Margen</span><span id="pv-mrg">—</span></div>
+      </div>
+      <button class="btn btn-primary" onclick="regVenta()">Confirmar Venta</button>
+    </div>
+    <div class="sec-title">Historial</div>
+    <div class="tbl-wrap" id="v-hist"></div>
+  </div>
+
+  <!-- INVENTARIO -->
+  <div class="tab-pane" id="tp-inventario">
+    <div class="chip-bar" id="inv-chips" style="margin:-1rem -1rem .875rem;padding:.65rem 1rem;"></div>
+    <div class="tbl-wrap" id="inv-tbl"></div>
+    <button class="fab" onclick="openModal()">+</button>
+  </div>
+
+  <!-- COMPRAS -->
+  <div class="tab-pane" id="tp-compras">
+    <div class="form-card">
+      <div class="sec-title">Registrar Entrada de Stock</div>
+      <div class="f-row">
+        <div class="f-grp">
+          <label>Categoría</label>
+          <select id="c-cat" onchange="updCCompraSub()"><option value="">— Seleccionar —</option></select>
+        </div>
+        <div class="f-grp">
+          <label>Subcategoría</label>
+          <select id="c-sub" onchange="updCCompraProd()" disabled><option value="">— N/A —</option></select>
+        </div>
+      </div>
+      <div class="f-row full">
+        <div class="f-grp">
+          <label>Producto</label>
+          <select id="c-prod" disabled><option value="">— Seleccionar categoría —</option></select>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="f-grp"><label>Cantidad</label><input type="number" id="c-cant" min="1" value="1"></div>
+        <div class="f-grp"><label>Nota</label><input type="text" id="c-nota" placeholder="Opcional"></div>
+      </div>
+      <button class="btn btn-primary" onclick="regCompra()">Registrar Entrada</button>
+    </div>
+    <div class="sec-title">Historial</div>
+    <div class="tbl-wrap" id="c-hist"></div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal-ov hide" id="modal-ov">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="modal-ttl">Nuevo Producto</h3>
+      <button class="modal-cls" onclick="closeModal()">✕</button>
+    </div>
+    <div class="f-row full"><div class="f-grp"><label>Nombre</label><input type="text" id="m-nom" placeholder="Ej: Pantalón Slim"></div></div>
+    <div class="f-row">
+      <div class="f-grp"><label>Categoría</label><select id="m-cat" onchange="updSubcats()"><option value="">— Seleccionar —</option></select></div>
+      <div class="f-grp"><label>Subcategoría</label><select id="m-sub"><option value="">— N/A —</option></select></div>
+    </div>
+    <div class="f-row">
+      <div class="f-grp"><label>Color</label><select id="m-col"></select></div>
+      <div class="f-grp"><label>Talla</label><select id="m-tal"></select></div>
+    </div>
+    <div class="f-row">
+      <div class="f-grp"><label>Stock</label><input type="number" id="m-stk" min="0" value="1"></div>
+      <div class="f-grp"><label>Costo (Bs.)</label><input type="number" id="m-cos" min="0" step="0.5"></div>
+    </div>
+    <div class="f-row full"><div class="f-grp"><label>Precio Venta (Bs.)</label><input type="number" id="m-prc" min="0" step="0.5"></div></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Guardar</button>
+    </div>
+    <div id="del-wrap" style="margin-top:.65rem;display:none">
+      <button class="btn btn-danger" onclick="delProduct()">Eliminar producto</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ── FIREBASE ──
+firebase.initializeApp({
+  apiKey: "AIzaSyAZhymz27uMPZoH-qq9bI1zql_imEJTlBM",
+  authDomain: "boutique-tienda.firebaseapp.com",
+  projectId: "boutique-tienda",
+  storageBucket: "boutique-tienda.firebasestorage.app",
+  messagingSenderId: "418128334179",
+  appId: "1:418128334179:web:c2bd42e261f43633805756"
+});
+const db = firebase.firestore();
+
+// ── CONSTANTS ──
+const PWD = 'tienda2025';
+const TIENDA = 'Mi Boutique';
+const CATS = {
+  'Pantalones':       ['Vaqueros','Busos'],
+  'Poleras':          ['Tops','Croptops','Largas'],
+  'Chompas':          ['Cortas','Largas'],
+  'Cortos y Faldas':  [],
+  'Camisas y Vestidos':[]
+};
+const COLORES = ['Negro','Blanco','Gris','Azul','Rojo','Rosa','Verde','Beige','Café','Morado','Naranja','Amarillo'];
+const TALLAS  = ['XS','S','M','L','XL','XXL'];
+const EMOJIS  = {'Pantalones':'👖','Poleras':'👕','Chompas':'🧥','Cortos y Faldas':'🩱','Camisas y Vestidos':'👗'};
+
+// ── STATE ──
+let editId = null, invF = 'Todos', catF = 'Todos', currentTab = 'resumen';
+
+// ── CACHE EN MEMORIA (se llena desde Firebase) ──
+let _P = [], _V = [], _C = [];
+const gP = () => _P;
+const gV = () => _V;
+const gC = () => _C;
+const uid = () => Date.now().toString(36)+Math.random().toString(36).substr(2,5);
+const bs  = n => 'Bs. '+Number(n).toLocaleString('es-BO',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = n => Number(n).toLocaleString('es-BO',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const dt  = () => new Date().toLocaleString('es-BO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+// ── AUTH ──
+function doLogin() {
+  if (document.getElementById('li').value === PWD) {
+    sessionStorage.setItem('ti_a','1');
+    document.getElementById('login-overlay').style.display = 'none';
+    const nav = document.getElementById('top-nav');
+    nav.style.display = 'flex';
+    document.getElementById('nb-exit').style.display = '';
+    switchView('private');
+    initSelects();
+  } else {
+    document.getElementById('lerr').style.display = 'block';
+    document.getElementById('li').value = '';
+  }
+}
+function showPublic() {
+  document.getElementById('login-overlay').style.display = 'none';
+  const nav = document.getElementById('top-nav');
+  nav.style.display = 'flex';
+  document.getElementById('nb-prv').style.display = 'none';
+  document.getElementById('nb-exit').style.display = 'none';
+  switchView('public');
+  initListeners();
+}
+function logout() { sessionStorage.removeItem('ti_a'); location.reload(); }
+
+// ── VIEWS ──
+function switchView(v) {
+  document.getElementById('view-public').className  = v==='public'  ? 'on' : '';
+  document.getElementById('view-private').className = v==='private' ? 'on' : '';
+  document.getElementById('nb-pub').className = 'nav-btn'+(v==='public'  ? ' on' : '');
+  document.getElementById('nb-prv').className = 'nav-btn'+(v==='private' ? ' on' : '');
+  if (v==='public')  renderCatalog();
+  if (v==='private') renderTab(document.querySelector('.tab-btn.on')?.textContent.trim().toLowerCase()||'resumen');
+}
+
+function goTab(t) {
+  currentTab = t;
+  const labels = ['resumen','resultados','ventas','inventario','compras'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.className='tab-btn'+(labels[i]===t?' on':''));
+  document.querySelectorAll('.tab-pane').forEach(p => p.className='tab-pane'+(p.id==='tp-'+t?' on':''));
+  renderTab(t);
+}
+
+function renderTab(t) {
+  if (t==='resumen')    renderResumen();
+  else if (t==='resultados') renderResultados();
+  else if (t==='ventas')     renderVentas();
+  else if (t==='inventario') renderInventario();
+  else if (t==='compras')    renderCompras();
+}
+
+// ── INIT ──
+function initSelects() {
+  document.getElementById('banner-name').textContent = TIENDA;
+  const cs = document.getElementById('m-cat');
+  Object.keys(CATS).forEach(c => cs.innerHTML += `<option>${c}</option>`);
+  const col = document.getElementById('m-col');
+  COLORES.forEach(c => col.innerHTML += `<option>${c}</option>`);
+  const tal = document.getElementById('m-tal');
+  TALLAS.forEach(t => tal.innerHTML += `<option>${t}</option>`);
+  renderResumen();
+}
+
+function updSubcats() {
+  const cat = document.getElementById('m-cat').value;
+  const sel = document.getElementById('m-sub');
+  const subs = CATS[cat]||[];
+  sel.innerHTML = '<option value="">— N/A —</option>';
+  subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
+  sel.disabled = subs.length===0;
+}
+
+// ── RESUMEN ──
+function renderResumen() {
+  const P = gP(), V = gV();
+  const invStock = P.reduce((s,p)=>s+p.costo*p.stock,0);
+  const valLista = P.reduce((s,p)=>s+p.precio*p.stock,0);
+  const vtaTotal = V.reduce((s,v)=>s+v.pv*v.cant,0);
+  const utilReal = V.reduce((s,v)=>s+(v.pv-v.cos)*v.cant,0);
+
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric-card"><div class="metric-lbl">Inversión en stock</div><div class="metric-val">${bs(invStock)}</div><div class="metric-sub">${P.length} productos</div></div>
+    <div class="metric-card"><div class="metric-lbl">Valor de lista</div><div class="metric-val">${bs(valLista)}</div><div class="metric-sub">Al precio de venta</div></div>
+    <div class="metric-card"><div class="metric-lbl">Ventas realizadas</div><div class="metric-val">${bs(vtaTotal)}</div><div class="metric-sub">${V.length} transacciones</div></div>
+    <div class="metric-card"><div class="metric-lbl">Utilidad real</div><div class="metric-val" style="color:${utilReal>=0?'var(--ok)':'var(--err)'}">${bs(utilReal)}</div><div class="metric-sub">Ganancia neta</div></div>
+  `;
+
+  const sinStock  = P.filter(p=>p.stock===0);
+  const bajoStock = P.filter(p=>p.stock>0&&p.stock<=2);
+  let al = sinStock.length===0&&bajoStock.length===0
+    ? `<div class="alert a-ok">✓ Inventario con stock suficiente</div>` : '';
+  sinStock.forEach(p  => al += `<div class="alert a-err">⚠ SIN STOCK: ${p.nom} (${p.col}, ${p.tal})</div>`);
+  bajoStock.forEach(p => al += `<div class="alert a-wrn">↓ Stock bajo: ${p.nom} (${p.col}, ${p.tal}) — ${p.stock} ud.</div>`);
+  document.getElementById('alertas').innerHTML = al;
+
+  const cats = {};
+  Object.keys(CATS).forEach(c => cats[c]={stock:0,val:0});
+  P.forEach(p => { if(cats[p.cat]){ cats[p.cat].stock+=p.stock; cats[p.cat].val+=p.precio*p.stock; } });
+  document.getElementById('cat-sum').innerHTML = Object.entries(cats).map(([c,d])=>
+    `<div class="cs-row"><span>${EMOJIS[c]||'🏷'} ${c}</span><span class="c-tc fw6">${d.stock} uds · ${bs(d.val)}</span></div>`
+  ).join('');
+}
+
+// ── RESULTADOS ──
+function renderResultados() {
+  const V = gV();
+  const ingresos  = V.reduce((s,v)=>s+v.pv*v.cant,0);
+  const costoVtas = V.reduce((s,v)=>s+v.cos*v.cant,0);
+  const util      = ingresos - costoVtas;
+  const mrg       = ingresos>0 ? util/ingresos*100 : 0;
+  const uds       = V.reduce((s,v)=>s+v.cant,0);
+  const ticket    = V.length>0 ? ingresos/V.length : 0;
+  const ganUd     = uds>0 ? util/uds : 0;
+
+  document.getElementById('er').innerHTML = `
+    <div class="er-row"><span class="lbl">Ingresos totales</span><span class="val tc">${bs(ingresos)}</span></div>
+    <div class="er-row"><span class="lbl">Costo de ventas</span><span class="val neg">- ${bs(costoVtas)}</span></div>
+    <div class="er-row hl"><span class="lbl fw6">Utilidad bruta</span><span class="val fw6 ${util>=0?'pos':'neg'}">${bs(util)}</span></div>
+    <div class="er-row"><span class="lbl">Margen %</span><span class="val tc">${pct(mrg)}</span></div>
+    <div class="er-row"><span class="lbl">Ticket promedio</span><span class="val">${bs(ticket)}</span></div>
+    <div class="er-row"><span class="lbl">Unidades vendidas</span><span class="val">${uds} uds.</span></div>
+    <div class="er-row"><span class="lbl">Ganancia por unidad</span><span class="val ${ganUd>=0?'pos':'neg'}">${bs(ganUd)}</span></div>
+  `;
+
+  const pp = {};
+  V.forEach(v => {
+    if (!pp[v.pnom]) pp[v.pnom]={ing:0,cos:0,uds:0};
+    pp[v.pnom].ing += v.pv*v.cant;
+    pp[v.pnom].cos += v.cos*v.cant;
+    pp[v.pnom].uds += v.cant;
+  });
+
+  if (!Object.keys(pp).length) {
+    document.getElementById('util-tbl').innerHTML = `<div class="empty"><div class="ico">📊</div><p>Sin ventas registradas aún</p></div>`;
+    return;
+  }
+
+  const rows = Object.entries(pp).sort((a,b)=>(b[1].ing-b[1].cos)-(a[1].ing-a[1].cos)).map(([nom,d])=>{
+    const u = d.ing-d.cos, m = d.ing>0?u/d.ing*100:0;
+    return `<tr><td>${nom}</td><td class="tr">${d.uds}</td><td class="tr fw6 c-tc">${bs(u)}</td><td class="tr">${pct(m)}</td></tr>`;
+  }).join('');
+  document.getElementById('util-tbl').innerHTML = `<table><thead><tr><th>Producto</th><th class="tr">Uds</th><th class="tr">Utilidad</th><th class="tr">Margen</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── VENTAS ──
+function renderVentas() {
+  fillSel('v-prod', gP().filter(p=>p.stock>0));
+  fillSel('c-prod', gP());
+  renderVHist();
+}
+
+function fillSel(id, prods) {
+  const s = document.getElementById(id);
+  const cur = s.value;
+  s.innerHTML = '<option value="">— Seleccionar —</option>';
+  prods.forEach(p => s.innerHTML += `<option value="${p.id}" data-pv="${p.precio}" data-cos="${p.costo}">${p.nom} (${p.col}, ${p.tal}) — Stock: ${p.stock}</option>`);
+  if (cur) s.value = cur;
+}
+
+function prevVenta() {
+  const s = document.getElementById('v-prod');
+  const o = s.options[s.selectedIndex];
+  const cant = +document.getElementById('v-cant').value||0;
+  const pvIn = document.getElementById('v-pv');
+  const prev = document.getElementById('vprev');
+  if (!s.value||cant<=0) { prev.className='v-preview'; return; }
+  if (!pvIn.value) pvIn.value = o.dataset.pv;
+  const pv  = +pvIn.value||0;
+  const cos = +o.dataset.cos||0;
+  const sub = pv*cant, cosT=cos*cant, util=sub-cosT, mrg=sub>0?util/sub*100:0;
+  document.getElementById('pv-sub').textContent  = bs(sub);
+  document.getElementById('pv-cos').textContent  = bs(cosT);
+  document.getElementById('pv-util').textContent = bs(util);
+  document.getElementById('pv-util').className   = util>=0?'c-ok':'c-err';
+  document.getElementById('pv-mrg').textContent  = pct(mrg);
+  prev.className = 'v-preview on';
+}
+
+async function regVenta() {
+  const s = document.getElementById('v-prod');
+  if (!s.value) { alert('Selecciona un producto'); return; }
+  const cant = +document.getElementById('v-cant').value||0;
+  const pv   = +document.getElementById('v-pv').value||0;
+  if (cant<=0) { alert('Cantidad inválida'); return; }
+  if (pv<=0)   { alert('Ingresa el precio de venta'); return; }
+  const P = gP(), idx = P.findIndex(p=>p.id===s.value);
+  if (idx===-1) return;
+  if (P[idx].stock<cant) { alert(`Stock insuficiente (${P[idx].stock} disponibles)`); return; }
+  const p = P[idx];
+  await db.collection('productos').doc(p.id).update({ stock: p.stock - cant });
+  await db.collection('ventas').add({ id:uid(), fechaTs: Date.now(), fecha:dt(), pid:p.id, pnom:`${p.nom} (${p.col}, ${p.tal})`, cant, pv, cos:p.costo });
+  document.getElementById('v-prod').value='';
+  document.getElementById('v-cant').value='1';
+  document.getElementById('v-pv').value='';
+  document.getElementById('vprev').className='v-preview';
+}
+
+function renderVHist() {
+  const V = gV();
+  if (!V.length) { document.getElementById('v-hist').innerHTML=`<div class="empty"><div class="ico">🛍</div><p>Sin ventas aún</p></div>`; return; }
+  const rows = V.slice(0,60).map(v=>{
+    const u=(v.pv-v.cos)*v.cant;
+    return `<tr><td>${v.fecha}</td><td>${v.pnom}</td><td class="tr">${v.cant}</td><td class="tr">${bs(v.pv)}</td><td class="tr fw6 ${u>=0?'c-ok':'c-err'}">${bs(u)}</td></tr>`;
+  }).join('');
+  document.getElementById('v-hist').innerHTML=`<table><thead><tr><th>Fecha</th><th>Producto</th><th class="tr">Cant</th><th class="tr">Precio</th><th class="tr">Utilidad</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── INVENTARIO ──
+function renderInventario() {
+  const chips = ['Todos',...Object.keys(CATS)];
+  document.getElementById('inv-chips').innerHTML = chips.map(c=>
+    `<button class="chip${c===invF?' on':''}" onclick="setInvF('${c}')">${c}</button>`
+  ).join('');
+  const P = gP();
+  const list = invF==='Todos' ? P : P.filter(p=>p.cat===invF);
+  if (!list.length) {
+    document.getElementById('inv-tbl').innerHTML=`<div class="empty"><div class="ico">👗</div><p>Sin productos. Toca + para agregar.</p></div>`;
+    return;
+  }
+  const rows = list.map(p=>{
+    const mrg = p.precio>0?((p.precio-p.costo)/p.precio*100):0;
+    const sc = p.stock===0?'c-err':p.stock<=2?'c-wrn':'';
+    return `<tr onclick="openModal('${p.id}')" style="cursor:pointer">
+      <td><div class="fw6">${p.nom}</div><div class="sm" style="color:var(--txt2)">${p.cat}${p.sub?' · '+p.sub:''} · ${p.col} · ${p.tal}</div></td>
+      <td class="tr fw6 ${sc}">${p.stock}</td>
+      <td class="tr">${bs(p.costo)}</td>
+      <td class="tr c-tc fw6">${bs(p.precio)}</td>
+      <td class="tr">${pct(mrg)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('inv-tbl').innerHTML=`<table><thead><tr><th>Producto</th><th class="tr">Stock</th><th class="tr">Costo</th><th class="tr">Precio</th><th class="tr">Margen</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function setInvF(c) { invF=c; renderInventario(); }
+
+// ── COMPRAS ──
+function renderCompras() {
+  const catSel = document.getElementById('c-cat');
+  const cur = catSel.value;
+  catSel.innerHTML = '<option value="">— Seleccionar —</option>';
+  Object.keys(CATS).forEach(c => catSel.innerHTML += `<option>${c}</option>`);
+  if (cur) catSel.value = cur;
+  renderCHist();
+}
+
+function updCCompraSub() {
+  const cat  = document.getElementById('c-cat').value;
+  const sub  = document.getElementById('c-sub');
+  const subs = CATS[cat]||[];
+  sub.innerHTML = '<option value="">— N/A —</option>';
+  subs.forEach(s => sub.innerHTML += `<option>${s}</option>`);
+  sub.disabled = subs.length === 0;
+  updCCompraProd();
+}
+
+function updCCompraProd() {
+  const cat  = document.getElementById('c-cat').value;
+  const sub  = document.getElementById('c-sub').value;
+  const sel  = document.getElementById('c-prod');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>';
+  if (!cat) { sel.disabled = true; return; }
+  const lista = gP().filter(p => {
+    if (p.cat !== cat) return false;
+    if (sub && p.sub !== sub) return false;
+    return true;
+  });
+  lista.forEach(p => sel.innerHTML += `<option value="${p.id}">${p.nom} · ${p.col} · ${p.tal} (Stock: ${p.stock})</option>`);
+  sel.disabled = lista.length === 0;
+}
+
+async function regCompra() {
+  const pid = document.getElementById('c-prod').value;
+  if (!pid) { alert('Selecciona un producto'); return; }
+  const cant = +document.getElementById('c-cant').value||0;
+  const nota = document.getElementById('c-nota').value.trim();
+  if (cant<=0) { alert('Cantidad inválida'); return; }
+  const P = gP(), idx = P.findIndex(p=>p.id===pid);
+  if (idx===-1) return;
+  const p = P[idx];
+  await db.collection('productos').doc(p.id).update({ stock: p.stock + cant });
+  await db.collection('compras').add({ id:uid(), fechaTs: Date.now(), fecha:dt(), pid, pnom:`${p.nom} (${p.col}, ${p.tal})`, cant, nota });
+  document.getElementById('c-cat').value='';
+  document.getElementById('c-sub').innerHTML='<option value="">— N/A —</option>';
+  document.getElementById('c-sub').disabled=true;
+  document.getElementById('c-prod').innerHTML='<option value="">— Seleccionar categoría —</option>';
+  document.getElementById('c-prod').disabled=true;
+  document.getElementById('c-cant').value='1';
+  document.getElementById('c-nota').value='';
+}
+
+function renderCHist() {
+  const C = gC();
+  if (!C.length) { document.getElementById('c-hist').innerHTML=`<div class="empty"><div class="ico">📦</div><p>Sin compras aún</p></div>`; return; }
+  const rows = C.slice(0,60).map(c=>`<tr><td>${c.fecha}</td><td>${c.pnom}</td><td class="tr fw6 c-ok">+${c.cant}</td><td>${c.nota||'—'}</td></tr>`).join('');
+  document.getElementById('c-hist').innerHTML=`<table><thead><tr><th>Fecha</th><th>Producto</th><th class="tr">Cant.</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── CATALOG (PUBLIC) ──
+function renderCatalog() {
+  const chips = ['Todos',...Object.keys(CATS)];
+  document.getElementById('pub-chips').innerHTML = chips.map(c=>
+    `<button class="chip${c===catF?' on':''}" onclick="setCatF('${c}')">${c}</button>`
+  ).join('');
+  const P = gP();
+  const list = catF==='Todos' ? P : P.filter(p=>p.cat===catF);
+  if (!list.length) {
+    document.getElementById('pub-grid').innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="ico">👗</div><p>Sin productos disponibles</p></div>`;
+    return;
+  }
+  document.getElementById('pub-grid').innerHTML = list.map(p=>{
+    const sb = p.stock===0
+      ? '<span class="sbadge s-out">Sin stock</span>'
+      : p.stock<=2
+        ? `<span class="sbadge s-low">Últimas ${p.stock}</span>`
+        : '<span class="sbadge s-ok">Disponible</span>';
+    return `<div class="cat-card">
+      <div class="cat-card-img">${EMOJIS[p.cat]||'🏷'}</div>
+      <div class="cat-card-body">
+        <div class="cat-card-name">${p.nom}</div>
+        <div class="cat-card-sub">${p.cat}${p.sub?' · '+p.sub:''}</div>
+        <div class="tag-row"><span class="tag">${p.col}</span><span class="tag">${p.tal}</span>${sb}</div>
+        <div class="cat-price">${bs(p.precio)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setCatF(c) { catF=c; renderCatalog(); }
+
+// ── MODAL ──
+function openModal(id) {
+  editId = id||null;
+  const del = document.getElementById('del-wrap');
+  document.getElementById('m-nom').value='';
+  document.getElementById('m-cat').value='';
+  document.getElementById('m-col').value=COLORES[0];
+  document.getElementById('m-tal').value='M';
+  document.getElementById('m-stk').value='1';
+  document.getElementById('m-cos').value='';
+  document.getElementById('m-prc').value='';
+  updSubcats();
+  if (id) {
+    const p = gP().find(x=>x.id===id);
+    if (!p) return;
+    document.getElementById('modal-ttl').textContent = 'Editar Producto';
+    document.getElementById('m-nom').value = p.nom;
+    document.getElementById('m-cat').value = p.cat;
+    updSubcats();
+    document.getElementById('m-sub').value = p.sub||'';
+    document.getElementById('m-col').value = p.col;
+    document.getElementById('m-tal').value = p.tal;
+    document.getElementById('m-stk').value = p.stock;
+    document.getElementById('m-cos').value = p.costo;
+    document.getElementById('m-prc').value = p.precio;
+    del.style.display = 'block';
+  } else {
+    document.getElementById('modal-ttl').textContent = 'Nuevo Producto';
+    del.style.display = 'none';
+  }
+  document.getElementById('modal-ov').className = 'modal-ov';
+}
+
+function closeModal() { document.getElementById('modal-ov').className='modal-ov hide'; editId=null; }
+
+async function saveProduct() {
+  const nom   = document.getElementById('m-nom').value.trim();
+  const cat   = document.getElementById('m-cat').value;
+  const sub   = document.getElementById('m-sub').value;
+  const col   = document.getElementById('m-col').value;
+  const tal   = document.getElementById('m-tal').value;
+  const stock = +document.getElementById('m-stk').value||0;
+  const costo = +document.getElementById('m-cos').value||0;
+  const precio= +document.getElementById('m-prc').value||0;
+  if (!nom)   { alert('Ingresa el nombre'); return; }
+  if (!cat)   { alert('Selecciona una categoría'); return; }
+  if (!precio){ alert('Ingresa el precio de venta'); return; }
+  const id = editId || uid();
+  await db.collection('productos').doc(id).set({ id, nom, cat, sub, col, tal, stock, costo, precio });
+  closeModal();
+}
+
+async function delProduct() {
+  if (!editId||!confirm('¿Eliminar este producto?')) return;
+  await db.collection('productos').doc(editId).delete();
+  closeModal();
+}
+
+// ── LISTENERS FIREBASE (tiempo real) ──
+function initListeners() {
+  db.collection('productos').onSnapshot(snap => {
+    _P = snap.docs.map(d => d.data());
+    renderTab(currentTab);
+  });
+  db.collection('ventas').orderBy('fechaTs','desc').onSnapshot(snap => {
+    _V = snap.docs.map(d => d.data());
+    renderTab(currentTab);
+  });
+  db.collection('compras').orderBy('fechaTs','desc').onSnapshot(snap => {
+    _C = snap.docs.map(d => d.data());
+    renderTab(currentTab);
+  });
+}
+
+// ── DATOS DE EJEMPLO (solo si Firebase está vacío) ──
+async function cargarEjemplos() {
+  const snap = await db.collection('productos').limit(1).get();
+  if (!snap.empty) return;
+  const batch = db.batch();
+  const prods = [
+    { id:'p1',  nom:'Pantalón Vaquero Slim', cat:'Pantalones',        sub:'Vaqueros', col:'Negro',  tal:'S', stock:5, costo:120, precio:250 },
+    { id:'p2',  nom:'Pantalón Vaquero Slim', cat:'Pantalones',        sub:'Vaqueros', col:'Azul',   tal:'M', stock:3, costo:120, precio:250 },
+    { id:'p3',  nom:'Buso Sport',            cat:'Pantalones',        sub:'Busos',    col:'Gris',   tal:'M', stock:4, costo:80,  precio:160 },
+    { id:'p4',  nom:'Polera Básica',         cat:'Poleras',           sub:'Tops',     col:'Blanco', tal:'S', stock:8, costo:45,  precio:95  },
+    { id:'p5',  nom:'Polera Básica',         cat:'Poleras',           sub:'Tops',     col:'Negro',  tal:'M', stock:6, costo:45,  precio:95  },
+    { id:'p6',  nom:'Croptop Floral',        cat:'Poleras',           sub:'Croptops', col:'Rosa',   tal:'S', stock:2, costo:55,  precio:120 },
+    { id:'p7',  nom:'Polera Larga',          cat:'Poleras',           sub:'Largas',   col:'Beige',  tal:'L', stock:0, costo:65,  precio:130 },
+    { id:'p8',  nom:'Chompa Oversize',       cat:'Chompas',           sub:'Largas',   col:'Café',   tal:'M', stock:3, costo:180, precio:350 },
+    { id:'p9',  nom:'Chompa Corta',          cat:'Chompas',           sub:'Cortas',   col:'Blanco', tal:'S', stock:1, costo:150, precio:290 },
+    { id:'p10', nom:'Short Jean',            cat:'Cortos y Faldas',   sub:'',         col:'Azul',   tal:'M', stock:4, costo:90,  precio:180 },
+    { id:'p11', nom:'Falda Midi',            cat:'Cortos y Faldas',   sub:'',         col:'Negro',  tal:'S', stock:2, costo:100, precio:200 },
+    { id:'p12', nom:'Vestido Casual',        cat:'Camisas y Vestidos',sub:'',         col:'Verde',  tal:'M', stock:3, costo:160, precio:320 },
+    { id:'p13', nom:'Camisa Oversize',       cat:'Camisas y Vestidos',sub:'',         col:'Beige',  tal:'L', stock:5, costo:110, precio:220 },
+  ];
+  prods.forEach(p => batch.set(db.collection('productos').doc(p.id), p));
+
+  const ts = Date.now();
+  const ventas = [
+    { id:'v1', fechaTs:ts-6*86400000, fecha:'20/04/2026, 13:00', pid:'p2',  pnom:'Pantalón Vaquero Slim (Azul, M)',  cant:1, pv:240, cos:120 },
+    { id:'v2', fechaTs:ts-5*86400000, fecha:'21/04/2026, 09:20', pid:'p12', pnom:'Vestido Casual (Verde, M)',         cant:1, pv:320, cos:160 },
+    { id:'v3', fechaTs:ts-4*86400000, fecha:'22/04/2026, 16:45', pid:'p6',  pnom:'Croptop Floral (Rosa, S)',          cant:1, pv:120, cos:55  },
+    { id:'v4', fechaTs:ts-3*86400000, fecha:'23/04/2026, 11:00', pid:'p8',  pnom:'Chompa Oversize (Café, M)',         cant:1, pv:370, cos:180 },
+    { id:'v5', fechaTs:ts-2*86400000, fecha:'24/04/2026, 14:15', pid:'p4',  pnom:'Polera Básica (Blanco, S)',        cant:2, pv:95,  cos:45  },
+    { id:'v6', fechaTs:ts-1*86400000, fecha:'25/04/2026, 10:30', pid:'p1',  pnom:'Pantalón Vaquero Slim (Negro, S)', cant:1, pv:250, cos:120 },
+  ];
+  ventas.forEach(v => batch.set(db.collection('ventas').doc(v.id), v));
+
+  const compras = [
+    { id:'c1', fechaTs:ts-10*86400000, fecha:'15/04/2026, 09:00', pid:'p1', pnom:'Pantalón Vaquero Slim (Negro, S)', cant:6,  nota:'Proveedor Cochabamba' },
+    { id:'c2', fechaTs:ts-10*86400000, fecha:'15/04/2026, 09:00', pid:'p4', pnom:'Polera Básica (Blanco, S)',        cant:10, nota:'Proveedor Cochabamba' },
+    { id:'c3', fechaTs:ts-8*86400000,  fecha:'17/04/2026, 11:30', pid:'p8', pnom:'Chompa Oversize (Café, M)',        cant:4,  nota:'Feria 16 de Julio'   },
+  ];
+  compras.forEach(c => batch.set(db.collection('compras').doc(c.id), c));
+
+  await batch.commit();
+}
+
+// ── BOOT ──
+window.addEventListener('load', async () => {
+  await cargarEjemplos();
+  initListeners();
+  if (sessionStorage.getItem('ti_a')==='1') {
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('top-nav').style.display='flex';
+    switchView('private');
+    initSelects();
+  }
+});
+document.getElementById('modal-ov').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+</script>
+</body>
+</html>
