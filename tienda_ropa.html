@@ -248,6 +248,15 @@
     .c-err { color: var(--err); }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+    .banner-share {
+      display: inline-block; margin-top: 1rem;
+      padding: .45rem 1rem; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.3); background: transparent;
+      color: rgba(255,255,255,.8); font-family: var(--sans);
+      font-size: .65rem; letter-spacing: .1em; text-transform: uppercase;
+      cursor: pointer; transition: all .2s;
+    }
+    .banner-share:hover { background: var(--tc); border-color: var(--tc); color: #fff; }
     .img-upload-btn {
       display: block; width: 100%; padding: .65rem; text-align: center;
       border: 1.5px dashed var(--bg3); border-radius: 10px;
@@ -429,6 +438,7 @@
   <div class="nav-actions">
     <button class="nav-btn" id="nb-pub" onclick="switchView('public')">Catálogo</button>
     <button class="nav-btn" id="nb-prv" onclick="switchView('private')">Gestión</button>
+    <button class="nav-btn" onclick="compartir()">Compartir</button>
     <button class="nav-btn exit" id="nb-exit" onclick="logout()">Salir</button>
   </div>
 </nav>
@@ -443,6 +453,7 @@
       </div>
       <div class="banner-line"></div>
       <div class="banner-desc">Nueva colección · Temporada 2025</div>
+      <button class="banner-share" onclick="compartir()">↗ Compartir catálogo</button>
     </div>
   </div>
   <div class="chip-bar" id="pub-chips"></div>
@@ -657,6 +668,15 @@ function showPublic() {
   renderCatalog();
 }
 function logout() { sessionStorage.removeItem('ti_a'); location.reload(); }
+
+function compartir() {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: 'Fashion Girl · Catálogo', text: '¡Mira este catálogo de ropa!', url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => alert('Link copiado al portapapeles ✓'));
+  }
+}
 
 // ── VIEWS ──
 function switchView(v) {
