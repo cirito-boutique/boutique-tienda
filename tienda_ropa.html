@@ -474,7 +474,7 @@
         Fashion<br><span class="italic">Girl</span>
       </div>
       <div class="banner-line"></div>
-      <div class="banner-desc">Nueva colección · Temporada 2025</div>
+      <div class="banner-desc">Nueva colección · Temporada 2026</div>
       <button class="banner-share" onclick="compartir()">↗ Compartir catálogo</button>
     </div>
   </div>
@@ -583,12 +583,16 @@
     </div>
     <div class="f-row full"><div class="f-grp"><label>Nombre</label><input type="text" id="m-nom" placeholder="Ej: Pantalón Slim"></div></div>
     <div class="f-row">
-      <div class="f-grp"><label>Categoría</label><select id="m-cat" onchange="updSubcats()"><option value="">— Seleccionar —</option></select></div>
+      <div class="f-grp">
+        <label>Categoría</label>
+        <select id="m-cat" onchange="updSubcats()"><option value="">— Seleccionar —</option></select>
+        <input type="text" id="m-cat-otro" placeholder="Escribe la categoría" style="display:none;margin-top:.4rem;font-family:var(--serif);font-size:.95rem;padding:.6rem .75rem;border:1.5px solid var(--tc);border-radius:10px;background:var(--bg);color:var(--txt);width:100%;">
+      </div>
       <div class="f-grp"><label>Subcategoría</label><select id="m-sub"><option value="">— N/A —</option></select></div>
     </div>
     <div class="f-row">
       <div class="f-grp"><label>Color</label><input list="col-list" id="m-col" placeholder="Ej: Celeste" autocomplete="off"><datalist id="col-list"></datalist></div>
-      <div class="f-grp"><label>Talla</label><select id="m-tal"></select></div>
+      <div class="f-grp"><label>Talla</label><input list="tal-list" id="m-tal" placeholder="Ej: M o 32" autocomplete="off"><datalist id="tal-list"></datalist></div>
     </div>
     <div class="f-row">
       <div class="f-grp"><label>Stock</label><input type="number" id="m-stk" min="0" value="1"></div>
@@ -689,7 +693,7 @@ let CATS = {
   'Camisas y Vestidos':[]
 };
 const COLORES = ['Negro','Blanco','Gris','Azul','Rojo','Rosa','Verde','Beige','Café','Morado','Naranja','Amarillo'];
-const TALLAS  = ['XS','S','M','L','XL','XXL'];
+const TALLAS  = ['XS','S','M','L','XL','XXL','28','30','32','34','36','38','40','42'];
 const EMOJIS  = {'Pantalones':'👖','Poleras':'👕','Chompas':'🧥','Cortos y Faldas':'🩱','Camisas y Vestidos':'👗'};
 
 // ── STATE ──
@@ -806,6 +810,7 @@ function refreshCatSelects() {
   const cs = document.getElementById('m-cat');
   cs.innerHTML = '<option value="">— Seleccionar —</option>';
   Object.keys(CATS).forEach(c => cs.innerHTML += `<option>${c}</option>`);
+  cs.innerHTML += '<option value="__otros__">✏ Otros...</option>';
 }
 function openPwdModal() {
   ['pwd-cur','pwd-new','pwd-cf'].forEach(id => document.getElementById(id).value = '');
@@ -873,17 +878,22 @@ function renderTab(t) {
 function initSelects() {
   const cs = document.getElementById('m-cat');
   Object.keys(CATS).forEach(c => cs.innerHTML += `<option>${c}</option>`);
+  cs.innerHTML += '<option value="__otros__">✏ Otros...</option>';
   const dl = document.getElementById('col-list');
   COLORES.forEach(c => dl.innerHTML += `<option value="${c}">`);
-  const tal = document.getElementById('m-tal');
-  TALLAS.forEach(t => tal.innerHTML += `<option>${t}</option>`);
+  const tal = document.getElementById('tal-list');
+  TALLAS.forEach(t => tal.innerHTML += `<option value="${t}">`);
   document.getElementById('nb-cfg').style.display = '';
   renderResumen();
 }
 
 function updSubcats() {
-  const cat = document.getElementById('m-cat').value;
-  const sel = document.getElementById('m-sub');
+  const cat    = document.getElementById('m-cat').value;
+  const otro   = document.getElementById('m-cat-otro');
+  const sel    = document.getElementById('m-sub');
+  const esOtro = cat === '__otros__';
+  otro.style.display = esOtro ? 'block' : 'none';
+  if (esOtro) { otro.focus(); sel.innerHTML = '<option value="">— N/A —</option>'; sel.disabled = true; return; }
   const subs = CATS[cat]||[];
   sel.innerHTML = '<option value="">— N/A —</option>';
   subs.forEach(s => sel.innerHTML += `<option>${s}</option>`);
@@ -1160,7 +1170,7 @@ function openModal(id) {
   document.getElementById('m-nom').value='';
   document.getElementById('m-cat').value='';
   document.getElementById('m-col').value=COLORES[0];
-  document.getElementById('m-tal').value='M';
+  document.getElementById('m-tal').value='';
   document.getElementById('m-stk').value='1';
   document.getElementById('m-cos').value='';
   document.getElementById('m-prc').value='';
@@ -1232,15 +1242,16 @@ function clearImg() {
 
 async function saveProduct() {
   const nom   = document.getElementById('m-nom').value.trim();
-  const cat   = document.getElementById('m-cat').value;
+  const catRaw = document.getElementById('m-cat').value;
+  const cat   = catRaw === '__otros__' ? document.getElementById('m-cat-otro').value.trim() : catRaw;
   const sub   = document.getElementById('m-sub').value;
-  const col   = document.getElementById('m-col').value;
+  const col   = document.getElementById('m-col').value.trim() || 'Sin color';
   const tal   = document.getElementById('m-tal').value;
   const stock = +document.getElementById('m-stk').value||0;
   const costo = +document.getElementById('m-cos').value||0;
   const precio= +document.getElementById('m-prc').value||0;
   if (!nom)   { alert('Ingresa el nombre'); return; }
-  if (!cat)   { alert('Selecciona una categoría'); return; }
+  if (!cat)   { alert('Selecciona o escribe una categoría'); return; }
   if (!precio){ alert('Ingresa el precio de venta'); return; }
 
   const saveBtn = document.querySelector('#modal-ov .btn-primary');
