@@ -248,6 +248,27 @@
     .c-err { color: var(--err); }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+    /* ─── LIGHTBOX ─── */
+    .lightbox { position: fixed; inset: 0; z-index: 600; background: rgba(26,16,8,.92); display: flex; align-items: center; justify-content: center; padding: 1.25rem; }
+    .lightbox.hide { display: none; }
+    .lightbox-inner { background: var(--wh); border-radius: var(--r2); width: 100%; max-width: 400px; overflow: hidden; position: relative; max-height: 90vh; overflow-y: auto; }
+    .lightbox-img { width: 100%; height: 280px; object-fit: cover; display: block; }
+    .lightbox-emoji { width: 100%; height: 280px; display: flex; align-items: center; justify-content: center; font-size: 7rem; background: linear-gradient(145deg, var(--bg2), var(--bg3)); }
+    .lightbox-info { padding: 1.25rem; }
+    .lightbox-name { font-size: 1.5rem; font-weight: 700; color: var(--blk); margin-bottom: .2rem; }
+    .lightbox-sub { font-family: var(--sans); font-size: .62rem; color: var(--txt2); letter-spacing: .12em; text-transform: uppercase; margin-bottom: .75rem; }
+    .lightbox-price { font-size: 1.8rem; font-weight: 700; color: var(--tc); margin-top: .75rem; }
+    .lightbox-cls { position: absolute; top: .75rem; right: .75rem; width: 34px; height: 34px; border-radius: 50%; background: rgba(26,16,8,.55); color: #fff; border: none; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+
+    /* ─── PASSWORD MODAL ─── */
+    .pwd-modal-ov { position: fixed; inset: 0; z-index: 700; background: rgba(26,16,8,.7); display: flex; align-items: center; justify-content: center; padding: 1.25rem; backdrop-filter: blur(4px); }
+    .pwd-modal-ov.hide { display: none; }
+    .pwd-modal { background: var(--wh); border-radius: var(--r2); width: 100%; max-width: 360px; padding: 1.5rem 1.25rem; }
+
+    /* ─── COLOR INPUT ─── */
+    .f-grp input[list] { font-family: var(--serif); font-size: .95rem; padding: .6rem .75rem; border: 1.5px solid var(--bg3); border-radius: 10px; background: var(--bg); color: var(--txt); width: 100%; }
+    .f-grp input[list]:focus { outline: none; border-color: var(--tc); background: var(--wh); }
+
     .banner-share {
       display: inline-block; margin-top: 1rem;
       padding: .45rem 1rem; border-radius: 20px;
@@ -439,6 +460,7 @@
     <button class="nav-btn" id="nb-pub" onclick="switchView('public')">Catálogo</button>
     <button class="nav-btn" id="nb-prv" onclick="switchView('private')">Gestión</button>
     <button class="nav-btn" onclick="compartir()">Compartir</button>
+    <button class="nav-btn" id="nb-cfg" onclick="openPwdModal()" style="display:none">⚙</button>
     <button class="nav-btn exit" id="nb-exit" onclick="logout()">Salir</button>
   </div>
 </nav>
@@ -565,7 +587,7 @@
       <div class="f-grp"><label>Subcategoría</label><select id="m-sub"><option value="">— N/A —</option></select></div>
     </div>
     <div class="f-row">
-      <div class="f-grp"><label>Color</label><select id="m-col"></select></div>
+      <div class="f-grp"><label>Color</label><input list="col-list" id="m-col" placeholder="Ej: Celeste" autocomplete="off"><datalist id="col-list"></datalist></div>
       <div class="f-grp"><label>Talla</label><select id="m-tal"></select></div>
     </div>
     <div class="f-row">
@@ -595,6 +617,37 @@
   </div>
 </div>
 
+<!-- LIGHTBOX -->
+<div class="lightbox hide" id="lightbox" onclick="closeLightbox()">
+  <div class="lightbox-inner" onclick="event.stopPropagation()">
+    <button class="lightbox-cls" onclick="closeLightbox()">✕</button>
+    <div id="lb-media"></div>
+    <div class="lightbox-info">
+      <div class="lightbox-name" id="lb-name"></div>
+      <div class="lightbox-sub" id="lb-sub"></div>
+      <div class="tag-row" id="lb-tags"></div>
+      <div class="lightbox-price" id="lb-price"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="pwd-modal-ov hide" id="pwd-modal-ov" onclick="if(event.target===this)closePwdModal()">
+  <div class="pwd-modal">
+    <div class="modal-hdr">
+      <h3>Cambiar Contraseña</h3>
+      <button class="modal-cls" onclick="closePwdModal()">✕</button>
+    </div>
+    <div class="f-grp" style="margin-bottom:.65rem"><label>Contraseña actual</label><input type="password" id="pwd-cur" placeholder="••••••••"></div>
+    <div class="f-grp" style="margin-bottom:.65rem"><label>Nueva contraseña</label><input type="password" id="pwd-new" placeholder="Mínimo 6 caracteres"></div>
+    <div class="f-grp" style="margin-bottom:1rem"><label>Confirmar nueva</label><input type="password" id="pwd-cf" placeholder="Repetir contraseña"></div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closePwdModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePassword()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -612,7 +665,7 @@ firebase.initializeApp({
 const db = firebase.firestore();
 
 // ── CONSTANTS ──
-const PWD = 'tienda2025';
+let PWD = 'tienda2025';
 const TIENDA = 'Fashion Girl';
 const CATS = {
   'Pantalones':       ['Vaqueros','Busos'],
@@ -669,6 +722,50 @@ function showPublic() {
 }
 function logout() { sessionStorage.removeItem('ti_a'); location.reload(); }
 
+// ── LIGHTBOX ──
+function openLightbox(id) {
+  const p = gP().find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('lb-name').textContent = p.nom;
+  document.getElementById('lb-sub').textContent = p.cat + (p.sub ? ' · ' + p.sub : '');
+  document.getElementById('lb-tags').innerHTML =
+    `<span class="tag">${p.col}</span><span class="tag">${p.tal}</span>` +
+    (p.stock === 0 ? '<span class="sbadge s-out">Sin stock</span>'
+     : p.stock <= 2 ? `<span class="sbadge s-low">Últimas ${p.stock}</span>`
+     : '<span class="sbadge s-ok">Disponible</span>');
+  document.getElementById('lb-price').textContent = bs(p.precio);
+  document.getElementById('lb-media').innerHTML = p.img
+    ? `<img class="lightbox-img" src="${p.img}">`
+    : `<div class="lightbox-emoji">${EMOJIS[p.cat]||'🏷'}</div>`;
+  document.getElementById('lightbox').className = 'lightbox';
+}
+function closeLightbox() { document.getElementById('lightbox').className = 'lightbox hide'; }
+
+// ── PASSWORD ──
+async function loadConfig() {
+  try {
+    const doc = await db.collection('config').doc('settings').get();
+    if (doc.exists && doc.data().pwd) PWD = doc.data().pwd;
+  } catch(e) {}
+}
+function openPwdModal() {
+  ['pwd-cur','pwd-new','pwd-cf'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pwd-modal-ov').className = 'pwd-modal-ov';
+}
+function closePwdModal() { document.getElementById('pwd-modal-ov').className = 'pwd-modal-ov hide'; }
+async function savePassword() {
+  const cur = document.getElementById('pwd-cur').value;
+  const nw  = document.getElementById('pwd-new').value.trim();
+  const cf  = document.getElementById('pwd-cf').value.trim();
+  if (cur !== PWD)    { alert('Contraseña actual incorrecta'); return; }
+  if (nw.length < 6)  { alert('Mínimo 6 caracteres'); return; }
+  if (nw !== cf)       { alert('Las contraseñas no coinciden'); return; }
+  await db.collection('config').doc('settings').set({ pwd: nw }, { merge: true });
+  PWD = nw;
+  closePwdModal();
+  alert('Contraseña actualizada ✓');
+}
+
 function compartir() {
   const url = window.location.href;
   if (navigator.share) {
@@ -716,10 +813,11 @@ function renderTab(t) {
 function initSelects() {
   const cs = document.getElementById('m-cat');
   Object.keys(CATS).forEach(c => cs.innerHTML += `<option>${c}</option>`);
-  const col = document.getElementById('m-col');
-  COLORES.forEach(c => col.innerHTML += `<option>${c}</option>`);
+  const dl = document.getElementById('col-list');
+  COLORES.forEach(c => dl.innerHTML += `<option value="${c}">`);
   const tal = document.getElementById('m-tal');
   TALLAS.forEach(t => tal.innerHTML += `<option>${t}</option>`);
+  document.getElementById('nb-cfg').style.display = '';
   renderResumen();
 }
 
@@ -978,7 +1076,7 @@ function renderCatalog() {
     const imgArea = p.img
       ? `<img src="${p.img}" style="width:100%;height:100%;object-fit:cover;display:block;">`
       : EMOJIS[p.cat]||'🏷';
-    return `<div class="cat-card">
+    return `<div class="cat-card" onclick="openLightbox('${p.id}')" style="cursor:pointer">
       <div class="cat-card-img">${imgArea}</div>
       <div class="cat-card-body">
         <div class="cat-card-name">${p.nom}</div>
@@ -1179,6 +1277,7 @@ async function cargarEjemplos() {
 
 // ── BOOT ──
 window.addEventListener('load', async () => {
+  await loadConfig();
   await cargarEjemplos();
   initListeners();
   if (sessionStorage.getItem('ti_a')==='1') {
