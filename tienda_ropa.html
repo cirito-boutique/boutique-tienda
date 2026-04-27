@@ -252,8 +252,8 @@
     .lightbox { position: fixed; inset: 0; z-index: 600; background: rgba(26,16,8,.92); display: flex; align-items: center; justify-content: center; padding: 1.25rem; }
     .lightbox.hide { display: none; }
     .lightbox-inner { background: var(--wh); border-radius: var(--r2); width: 100%; max-width: 400px; overflow: hidden; position: relative; max-height: 90vh; overflow-y: auto; }
-    .lightbox-img { width: 100%; height: 280px; object-fit: cover; display: block; }
-    .lightbox-emoji { width: 100%; height: 280px; display: flex; align-items: center; justify-content: center; font-size: 7rem; background: linear-gradient(145deg, var(--bg2), var(--bg3)); }
+    .lightbox-img { width: 100%; max-height: 65vh; object-fit: contain; display: block; background: var(--blk); }
+    .lightbox-emoji { width: 100%; height: 260px; display: flex; align-items: center; justify-content: center; font-size: 7rem; background: linear-gradient(145deg, var(--bg2), var(--bg3)); }
     .lightbox-info { padding: 1.25rem; }
     .lightbox-name { font-size: 1.5rem; font-weight: 700; color: var(--blk); margin-bottom: .2rem; }
     .lightbox-sub { font-family: var(--sans); font-size: .62rem; color: var(--txt2); letter-spacing: .12em; text-transform: uppercase; margin-bottom: .75rem; }
@@ -635,16 +635,30 @@
 <div class="pwd-modal-ov hide" id="pwd-modal-ov" onclick="if(event.target===this)closePwdModal()">
   <div class="pwd-modal">
     <div class="modal-hdr">
-      <h3>Cambiar Contraseña</h3>
+      <h3>Configuración</h3>
       <button class="modal-cls" onclick="closePwdModal()">✕</button>
     </div>
+
+    <div class="sec-title" style="margin-bottom:.75rem">Cambiar contraseña</div>
     <div class="f-grp" style="margin-bottom:.65rem"><label>Contraseña actual</label><input type="password" id="pwd-cur" placeholder="••••••••"></div>
     <div class="f-grp" style="margin-bottom:.65rem"><label>Nueva contraseña</label><input type="password" id="pwd-new" placeholder="Mínimo 6 caracteres"></div>
-    <div class="f-grp" style="margin-bottom:1rem"><label>Confirmar nueva</label><input type="password" id="pwd-cf" placeholder="Repetir contraseña"></div>
-    <div class="modal-acts">
+    <div class="f-grp" style="margin-bottom:.75rem"><label>Confirmar nueva</label><input type="password" id="pwd-cf" placeholder="Repetir contraseña"></div>
+    <div class="modal-acts" style="margin-bottom:1.5rem">
       <button class="btn btn-secondary" onclick="closePwdModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="savePassword()">Guardar</button>
     </div>
+
+    <div class="sec-title" style="margin-bottom:.75rem">Categorías</div>
+    <div id="cfg-cats-list" style="margin-bottom:1rem"></div>
+    <div class="f-grp" style="margin-bottom:.5rem">
+      <label>Nueva categoría</label>
+      <input type="text" id="new-cat-name" placeholder="Ej: Accesorios">
+    </div>
+    <div class="f-grp" style="margin-bottom:.75rem">
+      <label>Subcategorías (separar con coma)</label>
+      <input type="text" id="new-cat-subs" placeholder="Ej: Cinturones, Bolsos">
+    </div>
+    <button class="btn btn-primary" onclick="addCat()">+ Añadir categoría</button>
   </div>
 </div>
 
@@ -667,7 +681,7 @@ const db = firebase.firestore();
 // ── CONSTANTS ──
 let PWD = 'tienda2025';
 const TIENDA = 'Fashion Girl';
-const CATS = {
+let CATS = {
   'Pantalones':       ['Vaqueros','Busos'],
   'Poleras':          ['Tops','Croptops','Largas'],
   'Chompas':          ['Cortas','Largas'],
@@ -741,15 +755,61 @@ function openLightbox(id) {
 }
 function closeLightbox() { document.getElementById('lightbox').className = 'lightbox hide'; }
 
-// ── PASSWORD ──
+// ── CONFIG (contraseña + categorías) ──
 async function loadConfig() {
   try {
     const doc = await db.collection('config').doc('settings').get();
-    if (doc.exists && doc.data().pwd) PWD = doc.data().pwd;
+    if (!doc.exists) return;
+    if (doc.data().pwd)  PWD  = doc.data().pwd;
+    if (doc.data().cats) CATS = doc.data().cats;
   } catch(e) {}
+}
+
+async function saveCats() {
+  await db.collection('config').doc('settings').set({ cats: CATS }, { merge: true });
+}
+
+function renderCfgCats() {
+  document.getElementById('cfg-cats-list').innerHTML = Object.keys(CATS).map(cat => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--bg2);border-radius:8px;margin-bottom:.4rem;">
+      <div>
+        <div style="font-weight:600;font-size:.9rem">${cat}</div>
+        ${CATS[cat].length ? `<div style="font-family:var(--sans);font-size:.65rem;color:var(--txt2)">${CATS[cat].join(', ')}</div>` : ''}
+      </div>
+      <button onclick="deleteCat('${cat}')" style="background:none;border:none;color:var(--err);font-size:1.1rem;cursor:pointer;padding:.25rem;">✕</button>
+    </div>`).join('');
+}
+
+async function addCat() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  if (!name) { alert('Escribe el nombre de la categoría'); return; }
+  if (CATS[name] !== undefined) { alert('Esa categoría ya existe'); return; }
+  const subsRaw = document.getElementById('new-cat-subs').value.trim();
+  CATS[name] = subsRaw ? subsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  await saveCats();
+  document.getElementById('new-cat-name').value = '';
+  document.getElementById('new-cat-subs').value = '';
+  renderCfgCats();
+  refreshCatSelects();
+}
+
+async function deleteCat(cat) {
+  const inUse = gP().some(p => p.cat === cat);
+  if (inUse && !confirm(`Hay productos en "${cat}". ¿Eliminar igual?`)) return;
+  delete CATS[cat];
+  await saveCats();
+  renderCfgCats();
+  refreshCatSelects();
+}
+
+function refreshCatSelects() {
+  const cs = document.getElementById('m-cat');
+  cs.innerHTML = '<option value="">— Seleccionar —</option>';
+  Object.keys(CATS).forEach(c => cs.innerHTML += `<option>${c}</option>`);
 }
 function openPwdModal() {
   ['pwd-cur','pwd-new','pwd-cf'].forEach(id => document.getElementById(id).value = '');
+  renderCfgCats();
   document.getElementById('pwd-modal-ov').className = 'pwd-modal-ov';
 }
 function closePwdModal() { document.getElementById('pwd-modal-ov').className = 'pwd-modal-ov hide'; }
