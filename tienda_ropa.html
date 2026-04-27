@@ -248,6 +248,13 @@
     .c-err { color: var(--err); }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+    .img-upload-btn {
+      display: block; width: 100%; padding: .65rem; text-align: center;
+      border: 1.5px dashed var(--bg3); border-radius: 10px;
+      font-family: var(--sans); font-size: .78rem; color: var(--txt2);
+      cursor: pointer; transition: all .2s; margin-top: .2rem;
+    }
+    .img-upload-btn:hover { border-color: var(--tc); color: var(--tc); background: var(--bg); }
 
     /* ─── ANIMATIONS ─── */
     @keyframes fadeUp {
@@ -555,6 +562,18 @@
       <div class="f-grp"><label>Costo (Bs.)</label><input type="number" id="m-cos" min="0" step="0.5"></div>
     </div>
     <div class="f-row full"><div class="f-grp"><label>Precio Venta (Bs.)</label><input type="number" id="m-prc" min="0" step="0.5"></div></div>
+    <div class="f-row full">
+      <div class="f-grp">
+        <label>Foto del producto</label>
+        <label class="img-upload-btn" for="m-img">📷 Seleccionar foto</label>
+        <input type="file" id="m-img" accept="image/*" onchange="previewImg(this)" style="display:none">
+        <div id="img-prev-wrap" style="display:none;margin-top:.6rem;position:relative;">
+          <img id="img-prev" style="width:100%;height:160px;object-fit:cover;border-radius:12px;display:block;">
+          <button onclick="clearImg()" style="position:absolute;top:.4rem;right:.4rem;background:rgba(26,16,8,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:.8rem;cursor:pointer;">✕</button>
+        </div>
+        <div id="img-progress" style="display:none;font-family:var(--sans);font-size:.75rem;color:var(--txt2);margin-top:.4rem;">Subiendo foto...</div>
+      </div>
+    </div>
     <div class="modal-acts">
       <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveProduct()">Guardar</button>
@@ -936,8 +955,11 @@ function renderCatalog() {
       : p.stock<=2
         ? `<span class="sbadge s-low">Últimas ${p.stock}</span>`
         : '<span class="sbadge s-ok">Disponible</span>';
+    const imgArea = p.img
+      ? `<img src="${p.img}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+      : EMOJIS[p.cat]||'🏷';
     return `<div class="cat-card">
-      <div class="cat-card-img">${EMOJIS[p.cat]||'🏷'}</div>
+      <div class="cat-card-img">${imgArea}</div>
       <div class="cat-card-body">
         <div class="cat-card-name">${p.nom}</div>
         <div class="cat-card-sub">${p.cat}${p.sub?' · '+p.sub:''}</div>
@@ -978,15 +1000,57 @@ function openModal(id) {
     document.getElementById('m-stk').value = p.stock;
     document.getElementById('m-cos').value = p.costo;
     document.getElementById('m-prc').value = p.precio;
+    if (p.img) {
+      document.getElementById('img-prev').src = p.img;
+      document.getElementById('img-prev-wrap').style.display = 'block';
+    }
     del.style.display = 'block';
   } else {
     document.getElementById('modal-ttl').textContent = 'Nuevo Producto';
     del.style.display = 'none';
   }
+  document.getElementById('m-img').value = '';
+  if (!editId) {
+    document.getElementById('img-prev-wrap').style.display = 'none';
+    document.getElementById('img-prev').src = '';
+  }
   document.getElementById('modal-ov').className = 'modal-ov';
 }
 
 function closeModal() { document.getElementById('modal-ov').className='modal-ov hide'; editId=null; }
+
+// ── CLOUDINARY ──
+const CLOUD_NAME    = 'dblvyqs35';
+const UPLOAD_PRESET = 'boutique';
+
+async function uploadToCloudinary(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', UPLOAD_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: 'POST', body: fd
+  });
+  const data = await res.json();
+  if (data.secure_url) return data.secure_url;
+  throw new Error(data.error?.message || 'Error al subir imagen');
+}
+
+function previewImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('img-prev').src = e.target.result;
+    document.getElementById('img-prev-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImg() {
+  document.getElementById('m-img').value = '';
+  document.getElementById('img-prev').src = '';
+  document.getElementById('img-prev-wrap').style.display = 'none';
+}
 
 async function saveProduct() {
   const nom   = document.getElementById('m-nom').value.trim();
@@ -1000,9 +1064,32 @@ async function saveProduct() {
   if (!nom)   { alert('Ingresa el nombre'); return; }
   if (!cat)   { alert('Selecciona una categoría'); return; }
   if (!precio){ alert('Ingresa el precio de venta'); return; }
-  const id = editId || uid();
-  await db.collection('productos').doc(id).set({ id, nom, cat, sub, col, tal, stock, costo, precio });
-  closeModal();
+
+  const saveBtn = document.querySelector('#modal-ov .btn-primary');
+  const prog    = document.getElementById('img-progress');
+  saveBtn.disabled = true; saveBtn.textContent = 'Guardando...';
+
+  try {
+    let img = '';
+    if (editId) {
+      const existing = gP().find(x => x.id === editId);
+      if (existing?.img) img = existing.img;
+    }
+    const imgFile = document.getElementById('m-img').files[0];
+    if (imgFile) {
+      prog.style.display = 'block';
+      img = await uploadToCloudinary(imgFile);
+      prog.style.display = 'none';
+    }
+    const id = editId || uid();
+    await db.collection('productos').doc(id).set({ id, nom, cat, sub, col, tal, stock, costo, precio, img });
+    closeModal();
+  } catch(e) {
+    prog.style.display = 'none';
+    alert('Error: ' + e.message);
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = 'Guardar';
+  }
 }
 
 async function delProduct() {
