@@ -660,12 +660,16 @@
       <div class="f-row full">
         <div class="f-grp">
           <label>Producto</label>
-          <select id="c-prod" disabled><option value="">— Seleccionar categoría —</option></select>
+          <select id="c-prod" disabled onchange="prevCompra()"><option value="">— Seleccionar categoría —</option></select>
         </div>
       </div>
       <div class="f-row">
-        <div class="f-grp"><label>Cantidad</label><input type="number" id="c-cant" min="1" value="1"></div>
+        <div class="f-grp"><label>Cantidad</label><input type="number" id="c-cant" min="1" value="1" oninput="prevCompra()"></div>
         <div class="f-grp"><label>Nota</label><input type="text" id="c-nota" placeholder="Opcional"></div>
+      </div>
+      <div id="c-prev" style="display:none;background:linear-gradient(135deg,var(--bg2),var(--bg));border-radius:10px;padding:.75rem 1rem;margin-bottom:.65rem;border:1px solid var(--bg3);">
+        <div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:.2rem;"><span style="color:var(--txt2)">Costo unitario</span><span id="cp-unit">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;color:var(--tc);border-top:1px solid var(--bg3);padding-top:.4rem;margin-top:.4rem;"><span>Total invertido</span><span id="cp-total">—</span></div>
       </div>
       <button class="btn btn-primary" onclick="regCompra()">Registrar Entrada</button>
     </div>
@@ -1268,8 +1272,8 @@ async function regCompra() {
 function renderCHist() {
   const C = gC();
   if (!C.length) { document.getElementById('c-hist').innerHTML=`<div class="empty"><div class="ico">📦</div><p>Sin compras aún</p></div>`; return; }
-  const rows = C.slice(0,60).map(c=>`<tr><td>${c.fecha}</td><td>${c.pnom}</td><td class="tr fw6 c-ok">+${c.cant}</td><td>${c.nota||'—'}</td></tr>`).join('');
-  document.getElementById('c-hist').innerHTML=`<table><thead><tr><th>Fecha</th><th>Producto</th><th class="tr">Cant.</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const rows = C.slice(0,60).map(c=>`<tr><td>${c.fecha}</td><td>${c.pnom}</td><td class="tr fw6 c-ok">+${c.cant}</td><td>${c.nota||'—'}</td><td><button onclick="delCompra('${c.id}')" style="background:none;border:none;color:var(--err);cursor:pointer;font-size:1rem;padding:.2rem .4rem;">✕</button></td></tr>`).join('');
+  document.getElementById('c-hist').innerHTML=`<table><thead><tr><th>Fecha</th><th>Producto</th><th class="tr">Cant.</th><th>Nota</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ── CATALOG (PUBLIC) ──
@@ -1472,6 +1476,23 @@ async function delProduct() {
 async function delVenta(id) {
   if (!confirm('¿Eliminar esta venta del historial?')) return;
   await db.collection('ventas').doc(id).delete();
+}
+
+async function delCompra(id) {
+  if (!confirm('¿Eliminar esta entrada del historial?')) return;
+  await db.collection('compras').doc(id).delete();
+}
+
+function prevCompra() {
+  const pid  = document.getElementById('c-prod').value;
+  const cant = +document.getElementById('c-cant').value||0;
+  const prev = document.getElementById('c-prev');
+  if (!pid || cant <= 0) { prev.style.display='none'; return; }
+  const p = gP().find(x => x.id === pid);
+  if (!p) { prev.style.display='none'; return; }
+  document.getElementById('cp-unit').textContent  = bs(p.costo);
+  document.getElementById('cp-total').textContent = bs(p.costo * cant);
+  prev.style.display = 'block';
 }
 
 // ── LISTENERS FIREBASE (tiempo real) ──
