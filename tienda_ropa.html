@@ -516,6 +516,37 @@
       top: 50%;
       transform: translateY(-50%);
     }
+
+    /* ─── PICKER DE PRODUCTOS ─── */
+    .picker-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: .5rem; margin-bottom: .5rem; }
+    .picker-card { background: var(--bg); border-radius: 12px; padding: .7rem .75rem; border: 1.5px solid var(--bg3); cursor: pointer; transition: all .2s; position: relative; user-select: none; }
+    .picker-card:active { transform: scale(.97); }
+    .picker-card:hover { border-color: var(--tc-lt); background: var(--wh); }
+    .picker-card.in-cart { border-color: var(--tc); background: linear-gradient(135deg,rgba(196,113,74,.07),var(--wh)); }
+    .picker-name { font-family: var(--serif); font-size: .92rem; font-weight: 600; line-height: 1.2; color: var(--blk); margin-bottom: .1rem; }
+    .picker-sub { font-family: var(--sans); font-size: .58rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .05em; }
+    .picker-price { font-family: var(--sans); font-size: .8rem; font-weight: 700; color: var(--tc); margin-top: .3rem; }
+    .picker-badge { position: absolute; top: .45rem; right: .45rem; width: 20px; height: 20px; border-radius: 50%; background: var(--tc); color: #fff; font-family: var(--sans); font-size: .65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+    /* ─── CARRITO ─── */
+    .cart-item { display: flex; align-items: center; gap: .45rem; padding: .6rem 0; border-bottom: 1px solid var(--bg2); }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-item-name { font-weight: 600; font-size: .88rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cart-item-sub { font-family: var(--sans); font-size: .58rem; color: var(--txt2); }
+    .cart-qty { display: flex; align-items: center; gap: .2rem; flex-shrink: 0; }
+    .cart-qty button { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--bg3); background: var(--wh); cursor: pointer; font-size: 1rem; font-weight: 700; color: var(--txt); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
+    .cart-qty button:hover { border-color: var(--tc); color: var(--tc); }
+    .cart-qty span { width: 24px; text-align: center; font-family: var(--sans); font-size: .88rem; font-weight: 700; }
+    .cart-pv { width: 68px; font-family: var(--serif); font-size: .88rem; padding: .35rem .4rem; border: 1.5px solid var(--bg3); border-radius: 8px; background: var(--bg); color: var(--txt); text-align: right; flex-shrink: 0; }
+    .cart-pv:focus { outline: none; border-color: var(--tc); background: var(--wh); }
+    .cart-del { background: none; border: none; color: var(--err); cursor: pointer; font-size: 1.1rem; padding: .1rem .25rem; flex-shrink: 0; opacity: .65; transition: opacity .15s; }
+    .cart-del:hover { opacity: 1; }
+    .cart-total { background: linear-gradient(135deg,var(--bg2),var(--bg)); border-radius: 12px; padding: .875rem 1rem; margin: .65rem 0; border: 1px solid var(--bg3); }
+    .cart-total-row { display: flex; justify-content: space-between; font-size: .88rem; padding: .15rem 0; }
+    .cart-total-row.big { border-top: 1px solid var(--bg3); margin-top: .5rem; padding-top: .5rem; font-size: 1.05rem; font-weight: 700; color: var(--tc); font-family: var(--sans); }
+    .cart-hdr { font-family: var(--sans); font-size: .62rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; padding: .65rem 0 .4rem; border-top: 2px solid var(--gold-lt); margin-top: .5rem; }
+    .picker-chips { display: flex; gap: .4rem; overflow-x: auto; padding: .4rem 0 .65rem; -webkit-overflow-scrolling: touch; }
+    .picker-chips::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
@@ -613,24 +644,15 @@
   <!-- VENTAS -->
   <div class="tab-pane" id="tp-ventas">
     <div class="form-card">
-      <div class="sec-title">Registrar Venta</div>
-      <div class="f-row full">
-        <div class="f-grp">
-          <label>Producto</label>
-          <select id="v-prod" onchange="prevVenta()"><option value="">— Seleccionar —</option></select>
-        </div>
+      <div class="sec-title">Nueva Venta</div>
+      <div class="picker-chips" id="v-cat-chips"></div>
+      <div class="picker-grid" id="v-prod-list"></div>
+      <div id="v-cart-wrap" style="display:none">
+        <div class="cart-hdr">Seleccionados — edita el precio si es necesario</div>
+        <div id="v-cart-items"></div>
+        <div class="cart-total" id="v-cart-total"></div>
+        <button class="btn btn-primary" id="v-confirm-btn" onclick="regVentaCart()">✓ Confirmar Venta</button>
       </div>
-      <div class="f-row">
-        <div class="f-grp"><label>Cantidad</label><input type="number" id="v-cant" min="1" value="1" oninput="prevVenta()"></div>
-        <div class="f-grp"><label>Precio Venta (Bs.)</label><input type="number" id="v-pv" min="0" step="0.5" oninput="prevVenta()"></div>
-      </div>
-      <div class="v-preview" id="vprev">
-        <div class="pv-row"><span>Subtotal</span><span id="pv-sub">—</span></div>
-        <div class="pv-row"><span>Costo</span><span id="pv-cos">—</span></div>
-        <div class="pv-row"><span>Utilidad</span><span id="pv-util">—</span></div>
-        <div class="pv-row tot"><span>Margen</span><span id="pv-mrg">—</span></div>
-      </div>
-      <button class="btn btn-primary" onclick="regVenta()">Confirmar Venta</button>
     </div>
     <div class="sec-title">Historial</div>
     <div class="tbl-wrap" id="v-hist"></div>
@@ -646,32 +668,19 @@
   <!-- COMPRAS -->
   <div class="tab-pane" id="tp-compras">
     <div class="form-card">
-      <div class="sec-title">Registrar Entrada de Stock</div>
-      <div class="f-row">
-        <div class="f-grp">
-          <label>Categoría</label>
-          <select id="c-cat" onchange="updCCompraSub()"><option value="">— Seleccionar —</option></select>
+      <div class="sec-title">Nueva Entrada de Stock</div>
+      <div class="picker-chips" id="c-cat-chips"></div>
+      <div class="picker-grid" id="c-prod-list"></div>
+      <div id="c-cart-wrap" style="display:none">
+        <div class="cart-hdr">Seleccionados</div>
+        <div id="c-cart-items"></div>
+        <div class="cart-total" id="c-cart-total"></div>
+        <div class="f-grp" style="margin-bottom:.65rem">
+          <label>Nota general (opcional)</label>
+          <input type="text" id="c-nota" placeholder="Ej: Proveedor Norte">
         </div>
-        <div class="f-grp">
-          <label>Subcategoría</label>
-          <select id="c-sub" onchange="updCCompraProd()" disabled><option value="">— N/A —</option></select>
-        </div>
+        <button class="btn btn-primary" id="c-confirm-btn" onclick="regCompraCart()">✓ Confirmar Entrada</button>
       </div>
-      <div class="f-row full">
-        <div class="f-grp">
-          <label>Producto</label>
-          <select id="c-prod" disabled onchange="prevCompra()"><option value="">— Seleccionar categoría —</option></select>
-        </div>
-      </div>
-      <div class="f-row">
-        <div class="f-grp"><label>Cantidad</label><input type="number" id="c-cant" min="1" value="1" oninput="prevCompra()"></div>
-        <div class="f-grp"><label>Nota</label><input type="text" id="c-nota" placeholder="Opcional"></div>
-      </div>
-      <div id="c-prev" style="display:none;background:linear-gradient(135deg,var(--bg2),var(--bg));border-radius:10px;padding:.75rem 1rem;margin-bottom:.65rem;border:1px solid var(--bg3);">
-        <div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:.2rem;"><span style="color:var(--txt2)">Costo unitario</span><span id="cp-unit">—</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;color:var(--tc);border-top:1px solid var(--bg3);padding-top:.4rem;margin-top:.4rem;"><span>Total invertido</span><span id="cp-total">—</span></div>
-      </div>
-      <button class="btn btn-primary" onclick="regCompra()">Registrar Entrada</button>
     </div>
     <div class="sec-title">Historial</div>
     <div class="tbl-wrap" id="c-hist"></div>
@@ -806,6 +815,8 @@ const EMOJIS  = {'Pantalones':'👖','Poleras':'👕','Chompas':'🧥','Cortos y
 
 // ── STATE ──
 let editId = null, invF = 'Todos', catF = 'Todos', currentTab = 'resumen';
+let vCart = [], cCart = [];
+let vCatF = 'Todos', cCatF = 'Todos';
 
 // ── CACHE EN MEMORIA (se llena desde Firebase) ──
 let _P = [], _V = [], _C = [];
@@ -1128,57 +1139,137 @@ function renderResultados() {
   document.getElementById('util-tbl').innerHTML = `<table><thead><tr><th>Producto</th><th class="tr">Uds</th><th class="tr">Utilidad</th><th class="tr">Margen</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-// ── VENTAS ──
+// ── VENTAS (CARRITO) ──
 function renderVentas() {
-  fillSel('v-prod', gP().filter(p=>p.stock>0));
-  fillSel('c-prod', gP());
+  renderVChips();
+  renderVGrid();
+  renderVCart();
   renderVHist();
 }
 
-function fillSel(id, prods) {
-  const s = document.getElementById(id);
-  const cur = s.value;
-  s.innerHTML = '<option value="">— Seleccionar —</option>';
-  prods.forEach(p => s.innerHTML += `<option value="${p.id}" data-pv="${p.precio}" data-cos="${p.costo}">${p.nom} (${p.col}, ${p.tal}) — Stock: ${p.stock}</option>`);
-  if (cur) s.value = cur;
+function setVCatF(c) { vCatF = c; renderVChips(); renderVGrid(); }
+
+function renderVChips() {
+  const chips = ['Todos', ...Object.keys(CATS)];
+  document.getElementById('v-cat-chips').innerHTML = chips.map(c =>
+    `<button class="chip${c === vCatF ? ' on' : ''}" onclick="setVCatF('${c}')">${c}</button>`
+  ).join('');
 }
 
-function prevVenta() {
-  const s = document.getElementById('v-prod');
-  const o = s.options[s.selectedIndex];
-  const cant = +document.getElementById('v-cant').value||0;
-  const pvIn = document.getElementById('v-pv');
-  const prev = document.getElementById('vprev');
-  if (!s.value||cant<=0) { prev.className='v-preview'; return; }
-  if (!pvIn.value) pvIn.value = o.dataset.pv;
-  const pv  = +pvIn.value||0;
-  const cos = +o.dataset.cos||0;
-  const sub = pv*cant, cosT=cos*cant, util=sub-cosT, mrg=sub>0?util/sub*100:0;
-  document.getElementById('pv-sub').textContent  = bs(sub);
-  document.getElementById('pv-cos').textContent  = bs(cosT);
-  document.getElementById('pv-util').textContent = bs(util);
-  document.getElementById('pv-util').className   = util>=0?'c-ok':'c-err';
-  document.getElementById('pv-mrg').textContent  = pct(mrg);
-  prev.className = 'v-preview on';
+function renderVGrid() {
+  const P = gP().filter(p => p.stock > 0);
+  const list = vCatF === 'Todos' ? P : P.filter(p => p.cat === vCatF);
+  if (!list.length) {
+    document.getElementById('v-prod-list').innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ico">👗</div><p>Sin stock en esta categoría</p></div>`;
+    return;
+  }
+  document.getElementById('v-prod-list').innerHTML = list.map(p => {
+    const inCart = vCart.find(x => x.pid === p.id);
+    return `<div class="picker-card${inCart ? ' in-cart' : ''}" onclick="vAddCart('${p.id}')">
+      ${inCart ? `<div class="picker-badge">${inCart.cant}</div>` : ''}
+      <div class="picker-name">${p.nom}</div>
+      <div class="picker-sub">${p.col} · ${p.tal}</div>
+      <div class="picker-price">${bs(p.precio)}</div>
+      <div style="margin-top:.25rem">${p.stock<=2?`<span class="sbadge s-low">Últ. ${p.stock}</span>`:`<span class="sbadge s-ok">Stock ${p.stock}</span>`}</div>
+    </div>`;
+  }).join('');
 }
 
-async function regVenta() {
-  const s = document.getElementById('v-prod');
-  if (!s.value) { alert('Selecciona un producto'); return; }
-  const cant = +document.getElementById('v-cant').value||0;
-  const pv   = +document.getElementById('v-pv').value||0;
-  if (cant<=0) { alert('Cantidad inválida'); return; }
-  if (pv<=0)   { alert('Ingresa el precio de venta'); return; }
-  const P = gP(), idx = P.findIndex(p=>p.id===s.value);
-  if (idx===-1) return;
-  if (P[idx].stock<cant) { alert(`Stock insuficiente (${P[idx].stock} disponibles)`); return; }
-  const p = P[idx];
-  await db.collection('productos').doc(p.id).update({ stock: p.stock - cant });
-  await db.collection('ventas').add({ id:uid(), fechaTs: Date.now(), fecha:dt(), pid:p.id, pnom:`${p.nom} (${p.col}, ${p.tal})`, cant, pv, cos:p.costo });
-  document.getElementById('v-prod').value='';
-  document.getElementById('v-cant').value='1';
-  document.getElementById('v-pv').value='';
-  document.getElementById('vprev').className='v-preview';
+function vAddCart(pid) {
+  const p = gP().find(x => x.id === pid);
+  if (!p || p.stock <= 0) return;
+  const existing = vCart.find(x => x.pid === pid);
+  if (existing) {
+    if (existing.cant < p.stock) existing.cant++;
+    else return;
+  } else {
+    vCart.push({ pid, nom: p.nom, col: p.col, tal: p.tal, stock: p.stock, costo: p.costo, pv: p.precio, cant: 1 });
+  }
+  renderVGrid();
+  renderVCart();
+}
+
+function vRemoveCart(pid) {
+  vCart = vCart.filter(x => x.pid !== pid);
+  renderVGrid();
+  renderVCart();
+}
+
+function vSetQty(pid, delta) {
+  const item = vCart.find(x => x.pid === pid);
+  if (!item) return;
+  const newQty = item.cant + delta;
+  if (newQty <= 0) { vRemoveCart(pid); return; }
+  const p = gP().find(x => x.id === pid);
+  if (p && newQty > p.stock) return;
+  item.cant = newQty;
+  renderVGrid();
+  renderVCart();
+}
+
+function vSetPv(pid, val) {
+  const item = vCart.find(x => x.pid === pid);
+  if (item) item.pv = parseFloat(val) || item.pv;
+}
+
+function renderVCart() {
+  const wrap = document.getElementById('v-cart-wrap');
+  if (!vCart.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  document.getElementById('v-cart-items').innerHTML = vCart.map(item => `
+    <div class="cart-item">
+      <div style="flex:1;min-width:0">
+        <div class="cart-item-name">${item.nom}</div>
+        <div class="cart-item-sub">${item.col} · ${item.tal}</div>
+      </div>
+      <div class="cart-qty">
+        <button onclick="vSetQty('${item.pid}',-1)">−</button>
+        <span>${item.cant}</span>
+        <button onclick="vSetQty('${item.pid}',1)">+</button>
+      </div>
+      <input class="cart-pv" type="number" value="${item.pv}" min="0" step="0.5"
+        onchange="vSetPv('${item.pid}',this.value)" title="Precio venta Bs.">
+      <button class="cart-del" onclick="vRemoveCart('${item.pid}')">✕</button>
+    </div>`).join('');
+  const totalVta  = vCart.reduce((s,x) => s + x.pv * x.cant, 0);
+  const totalUtil = vCart.reduce((s,x) => s + (x.pv - x.costo) * x.cant, 0);
+  const totalUds  = vCart.reduce((s,x) => s + x.cant, 0);
+  document.getElementById('v-cart-total').innerHTML = `
+    <div class="cart-total-row"><span style="color:var(--txt2)">Unidades</span><span class="fw6">${totalUds} prendas</span></div>
+    <div class="cart-total-row"><span style="color:var(--txt2)">Utilidad estimada</span><span class="fw6 ${totalUtil>=0?'c-ok':'c-err'}">${bs(totalUtil)}</span></div>
+    <div class="cart-total-row big"><span>Total venta</span><span>${bs(totalVta)}</span></div>`;
+}
+
+async function regVentaCart() {
+  if (!vCart.length) return;
+  for (const item of vCart) {
+    if (!item.pv || item.pv <= 0) { alert(`Ingresa el precio para: ${item.nom}`); return; }
+    const p = gP().find(x => x.id === item.pid);
+    if (!p || p.stock < item.cant) { alert(`Stock insuficiente: ${item.nom} (disponible: ${p?p.stock:0})`); return; }
+  }
+  const btn = document.getElementById('v-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+  try {
+    const batch = db.batch();
+    for (const item of vCart) {
+      const p = gP().find(x => x.id === item.pid);
+      batch.update(db.collection('productos').doc(item.pid), { stock: p.stock - item.cant });
+      const newId = uid();
+      batch.set(db.collection('ventas').doc(newId), {
+        id: newId, fechaTs: Date.now(), fecha: dt(),
+        pid: item.pid, pnom: `${item.nom} (${item.col}, ${item.tal})`,
+        cant: item.cant, pv: item.pv, cos: item.costo
+      });
+    }
+    await batch.commit();
+    vCart = [];
+    renderVGrid();
+    renderVCart();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '✓ Confirmar Venta';
+  }
 }
 
 function renderVHist() {
@@ -1219,59 +1310,121 @@ function renderInventario() {
 
 function setInvF(c) { invF=c; renderInventario(); }
 
-// ── COMPRAS ──
+// ── COMPRAS (CARRITO) ──
 function renderCompras() {
-  const catSel = document.getElementById('c-cat');
-  const cur = catSel.value;
-  catSel.innerHTML = '<option value="">— Seleccionar —</option>';
-  Object.keys(CATS).forEach(c => catSel.innerHTML += `<option>${c}</option>`);
-  if (cur) catSel.value = cur;
+  renderCChips();
+  renderCGrid();
+  renderCCart();
   renderCHist();
 }
 
-function updCCompraSub() {
-  const cat  = document.getElementById('c-cat').value;
-  const sub  = document.getElementById('c-sub');
-  const subs = CATS[cat]||[];
-  sub.innerHTML = '<option value="">— N/A —</option>';
-  subs.forEach(s => sub.innerHTML += `<option>${s}</option>`);
-  sub.disabled = subs.length === 0;
-  updCCompraProd();
+function setCCatF(c) { cCatF = c; renderCChips(); renderCGrid(); }
+
+function renderCChips() {
+  const chips = ['Todos', ...Object.keys(CATS)];
+  document.getElementById('c-cat-chips').innerHTML = chips.map(c =>
+    `<button class="chip${c === cCatF ? ' on' : ''}" onclick="setCCatF('${c}')">${c}</button>`
+  ).join('');
 }
 
-function updCCompraProd() {
-  const cat  = document.getElementById('c-cat').value;
-  const sub  = document.getElementById('c-sub').value;
-  const sel  = document.getElementById('c-prod');
-  sel.innerHTML = '<option value="">— Seleccionar —</option>';
-  if (!cat) { sel.disabled = true; return; }
-  const lista = gP().filter(p => {
-    if (p.cat !== cat) return false;
-    if (sub && p.sub !== sub) return false;
-    return true;
-  });
-  lista.forEach(p => sel.innerHTML += `<option value="${p.id}">${p.nom} · ${p.col} · ${p.tal} (Stock: ${p.stock})</option>`);
-  sel.disabled = lista.length === 0;
+function renderCGrid() {
+  const P = gP();
+  const list = cCatF === 'Todos' ? P : P.filter(p => p.cat === cCatF);
+  if (!list.length) {
+    document.getElementById('c-prod-list').innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ico">📦</div><p>Sin productos en esta categoría</p></div>`;
+    return;
+  }
+  document.getElementById('c-prod-list').innerHTML = list.map(p => {
+    const inCart = cCart.find(x => x.pid === p.id);
+    return `<div class="picker-card${inCart ? ' in-cart' : ''}" onclick="cAddCart('${p.id}')">
+      ${inCart ? `<div class="picker-badge">${inCart.cant}</div>` : ''}
+      <div class="picker-name">${p.nom}</div>
+      <div class="picker-sub">${p.col} · ${p.tal}</div>
+      <div class="picker-price">${bs(p.costo)} <span style="font-size:.58rem;font-weight:400;color:var(--txt2);font-family:var(--sans)">costo</span></div>
+      <div style="margin-top:.25rem"><span class="sbadge s-ok">Stock ${p.stock}</span></div>
+    </div>`;
+  }).join('');
 }
 
-async function regCompra() {
-  const pid = document.getElementById('c-prod').value;
-  if (!pid) { alert('Selecciona un producto'); return; }
-  const cant = +document.getElementById('c-cant').value||0;
+function cAddCart(pid) {
+  const p = gP().find(x => x.id === pid);
+  if (!p) return;
+  const existing = cCart.find(x => x.pid === pid);
+  if (existing) existing.cant++;
+  else cCart.push({ pid, nom: p.nom, col: p.col, tal: p.tal, costo: p.costo, cant: 1 });
+  renderCGrid();
+  renderCCart();
+}
+
+function cRemoveCart(pid) {
+  cCart = cCart.filter(x => x.pid !== pid);
+  renderCGrid();
+  renderCCart();
+}
+
+function cSetQty(pid, delta) {
+  const item = cCart.find(x => x.pid === pid);
+  if (!item) return;
+  const newQty = item.cant + delta;
+  if (newQty <= 0) { cRemoveCart(pid); return; }
+  item.cant = newQty;
+  renderCGrid();
+  renderCCart();
+}
+
+function renderCCart() {
+  const wrap = document.getElementById('c-cart-wrap');
+  if (!cCart.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  document.getElementById('c-cart-items').innerHTML = cCart.map(item => `
+    <div class="cart-item">
+      <div style="flex:1;min-width:0">
+        <div class="cart-item-name">${item.nom}</div>
+        <div class="cart-item-sub">${item.col} · ${item.tal}</div>
+      </div>
+      <div class="cart-qty">
+        <button onclick="cSetQty('${item.pid}',-1)">−</button>
+        <span>${item.cant}</span>
+        <button onclick="cSetQty('${item.pid}',1)">+</button>
+      </div>
+      <div style="font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--ok);min-width:60px;text-align:right;flex-shrink:0">${bs(item.costo*item.cant)}</div>
+      <button class="cart-del" onclick="cRemoveCart('${item.pid}')">✕</button>
+    </div>`).join('');
+  const totalCosto = cCart.reduce((s,x) => s + x.costo * x.cant, 0);
+  const totalUds   = cCart.reduce((s,x) => s + x.cant, 0);
+  document.getElementById('c-cart-total').innerHTML = `
+    <div class="cart-total-row"><span style="color:var(--txt2)">Unidades a ingresar</span><span class="fw6">${totalUds} prendas</span></div>
+    <div class="cart-total-row big"><span>Total invertido</span><span>${bs(totalCosto)}</span></div>`;
+}
+
+async function regCompraCart() {
+  if (!cCart.length) return;
   const nota = document.getElementById('c-nota').value.trim();
-  if (cant<=0) { alert('Cantidad inválida'); return; }
-  const P = gP(), idx = P.findIndex(p=>p.id===pid);
-  if (idx===-1) return;
-  const p = P[idx];
-  await db.collection('productos').doc(p.id).update({ stock: p.stock + cant });
-  await db.collection('compras').add({ id:uid(), fechaTs: Date.now(), fecha:dt(), pid, pnom:`${p.nom} (${p.col}, ${p.tal})`, cant, nota });
-  document.getElementById('c-cat').value='';
-  document.getElementById('c-sub').innerHTML='<option value="">— N/A —</option>';
-  document.getElementById('c-sub').disabled=true;
-  document.getElementById('c-prod').innerHTML='<option value="">— Seleccionar categoría —</option>';
-  document.getElementById('c-prod').disabled=true;
-  document.getElementById('c-cant').value='1';
-  document.getElementById('c-nota').value='';
+  const btn = document.getElementById('c-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+  try {
+    const batch = db.batch();
+    for (const item of cCart) {
+      const p = gP().find(x => x.id === item.pid);
+      if (!p) continue;
+      batch.update(db.collection('productos').doc(item.pid), { stock: p.stock + item.cant });
+      const newId = uid();
+      batch.set(db.collection('compras').doc(newId), {
+        id: newId, fechaTs: Date.now(), fecha: dt(),
+        pid: item.pid, pnom: `${item.nom} (${item.col}, ${item.tal})`,
+        cant: item.cant, nota
+      });
+    }
+    await batch.commit();
+    cCart = [];
+    document.getElementById('c-nota').value = '';
+    renderCGrid();
+    renderCCart();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '✓ Confirmar Entrada';
+  }
 }
 
 function renderCHist() {
@@ -1486,18 +1639,6 @@ async function delVenta(id) {
 async function delCompra(id) {
   if (!confirm('¿Eliminar esta entrada del historial?')) return;
   await db.collection('compras').doc(id).delete();
-}
-
-function prevCompra() {
-  const pid  = document.getElementById('c-prod').value;
-  const cant = +document.getElementById('c-cant').value||0;
-  const prev = document.getElementById('c-prev');
-  if (!pid || cant <= 0) { prev.style.display='none'; return; }
-  const p = gP().find(x => x.id === pid);
-  if (!p) { prev.style.display='none'; return; }
-  document.getElementById('cp-unit').textContent  = bs(p.costo);
-  document.getElementById('cp-total').textContent = bs(p.costo * cant);
-  prev.style.display = 'block';
 }
 
 // ── LISTENERS FIREBASE (tiempo real) ──
