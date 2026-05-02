@@ -878,7 +878,12 @@ async function loadConfig() {
 }
 
 async function saveCats() {
-  await db.collection('config').doc('settings').set({ cats: CATS }, { merge: true });
+  const ref = db.collection('config').doc('settings');
+  try {
+    await ref.update({ cats: CATS });
+  } catch(e) {
+    await ref.set({ cats: CATS, init: true });
+  }
 }
 
 function renderCfgCats() {
