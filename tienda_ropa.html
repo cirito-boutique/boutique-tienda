@@ -1141,9 +1141,9 @@ function renderVHist() {
   if (!V.length) { document.getElementById('v-hist').innerHTML=`<div class="empty"><div class="ico">🛍</div><p>Sin ventas aún</p></div>`; return; }
   const rows = V.slice(0,60).map(v=>{
     const u=(v.pv-v.cos)*v.cant;
-    return `<tr><td>${v.fecha}</td><td>${v.pnom}</td><td class="tr">${v.cant}</td><td class="tr">${bs(v.pv)}</td><td class="tr fw6 ${u>=0?'c-ok':'c-err'}">${bs(u)}</td></tr>`;
+    return `<tr><td>${v.fecha}</td><td>${v.pnom}</td><td class="tr">${v.cant}</td><td class="tr">${bs(v.pv)}</td><td class="tr fw6 ${u>=0?'c-ok':'c-err'}">${bs(u)}</td><td><button onclick="delVenta('${v.id}')" style="background:none;border:none;color:var(--err);cursor:pointer;font-size:1rem;padding:.2rem .4rem;">✕</button></td></tr>`;
   }).join('');
-  document.getElementById('v-hist').innerHTML=`<table><thead><tr><th>Fecha</th><th>Producto</th><th class="tr">Cant</th><th class="tr">Precio</th><th class="tr">Utilidad</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('v-hist').innerHTML=`<table><thead><tr><th>Fecha</th><th>Producto</th><th class="tr">Cant</th><th class="tr">Precio</th><th class="tr">Utilidad</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ── INVENTARIO ──
@@ -1431,6 +1431,11 @@ async function delProduct() {
   if (!editId||!confirm('¿Eliminar este producto?')) return;
   await db.collection('productos').doc(editId).delete();
   closeModal();
+}
+
+async function delVenta(id) {
+  if (!confirm('¿Eliminar esta venta del historial?')) return;
+  await db.collection('ventas').doc(id).delete();
 }
 
 // ── LISTENERS FIREBASE (tiempo real) ──
