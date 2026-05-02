@@ -1434,25 +1434,35 @@ async function delProduct() {
 }
 
 // ── LISTENERS FIREBASE (tiempo real) ──
+let _renderTimer = null;
+function scheduleRender() {
+  clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(() => {
+    if (document.getElementById('view-public').className === 'on') renderCatalog();
+    else renderTab(currentTab);
+  }, 120);
+}
+
 function initListeners() {
   db.collection('productos').onSnapshot(snap => {
     _P = snap.docs.map(d => d.data());
-    renderTab(currentTab);
+    scheduleRender();
   });
   db.collection('ventas').orderBy('fechaTs','desc').onSnapshot(snap => {
     _V = snap.docs.map(d => d.data());
-    renderTab(currentTab);
+    scheduleRender();
   });
   db.collection('compras').orderBy('fechaTs','desc').onSnapshot(snap => {
     _C = snap.docs.map(d => d.data());
-    renderTab(currentTab);
+    scheduleRender();
   });
 }
 
 // ── DATOS DE EJEMPLO (solo si Firebase está vacío) ──
 async function cargarEjemplos() {
-  const snap = await db.collection('productos').limit(1).get();
-  if (!snap.empty) return;
+  const cfg = await db.collection('config').doc('settings').get();
+  if (cfg.exists && cfg.data().init) return;
+  await db.collection('config').doc('settings').set({ init: true }, { merge: true });
   const batch = db.batch();
   const prods = [
     { id:'p1',  nom:'Pantalón Vaquero Slim', cat:'Pantalones',        sub:'Vaqueros', col:'Negro',  tal:'S', stock:5, costo:120, precio:250 },
