@@ -879,13 +879,49 @@ async function saveCats() {
 
 function renderCfgCats() {
   document.getElementById('cfg-cats-list').innerHTML = Object.keys(CATS).map(cat => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--bg2);border-radius:8px;margin-bottom:.4rem;">
-      <div>
-        <div style="font-weight:600;font-size:.9rem">${cat}</div>
-        ${CATS[cat].length ? `<div style="font-family:var(--sans);font-size:.65rem;color:var(--txt2)">${CATS[cat].join(', ')}</div>` : ''}
+    <div style="background:var(--bg2);border-radius:8px;margin-bottom:.4rem;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;">
+        <div>
+          <div style="font-weight:600;font-size:.9rem">${cat}</div>
+          ${CATS[cat].length ? `<div style="font-family:var(--sans);font-size:.65rem;color:var(--txt2)">${CATS[cat].join(', ')}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:.25rem;">
+          <button onclick="toggleEditCat('${cat}')" style="background:none;border:none;color:var(--tc);font-size:1rem;cursor:pointer;padding:.25rem;" title="Editar">✏</button>
+          <button onclick="deleteCat('${cat}')" style="background:none;border:none;color:var(--err);font-size:1.1rem;cursor:pointer;padding:.25rem;" title="Eliminar">✕</button>
+        </div>
       </div>
-      <button onclick="deleteCat('${cat}')" style="background:none;border:none;color:var(--err);font-size:1.1rem;cursor:pointer;padding:.25rem;">✕</button>
+      <div id="edit-cat-${cat.replace(/\s+/g,'_')}" style="display:none;padding:.5rem .75rem;border-top:1px solid var(--bg3);background:var(--wh);">
+        <div style="font-family:var(--sans);font-size:.62rem;color:var(--txt2);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.08em;">Nuevo nombre</div>
+        <div style="display:flex;gap:.4rem;">
+          <input type="text" value="${cat}" id="inp-cat-${cat.replace(/\s+/g,'_')}" style="flex:1;font-family:var(--serif);font-size:.9rem;padding:.45rem .65rem;border:1.5px solid var(--tc);border-radius:8px;background:var(--bg);color:var(--txt);">
+          <button onclick="renameCat('${cat}')" style="background:var(--tc);color:#fff;border:none;border-radius:8px;padding:.45rem .75rem;font-family:var(--sans);font-size:.72rem;cursor:pointer;font-weight:600;">OK</button>
+        </div>
+      </div>
     </div>`).join('');
+}
+
+function toggleEditCat(cat) {
+  const id = 'edit-cat-' + cat.replace(/\s+/g,'_');
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') document.getElementById('inp-cat-'+cat.replace(/\s+/g,'_')).focus();
+}
+
+async function renameCat(oldName) {
+  const newName = document.getElementById('inp-cat-'+oldName.replace(/\s+/g,'_')).value.trim();
+  if (!newName) { alert('Escribe el nuevo nombre'); return; }
+  if (newName === oldName) { toggleEditCat(oldName); return; }
+  if (CATS[newName] !== undefined) { alert('Esa categoría ya existe'); return; }
+  CATS[newName] = CATS[oldName];
+  delete CATS[oldName];
+  await saveCats();
+  const batch = db.batch();
+  gP().filter(p => p.cat === oldName).forEach(p => {
+    batch.update(db.collection('productos').doc(p.id), { cat: newName });
+  });
+  await batch.commit();
+  renderCfgCats();
+  refreshCatSelects();
 }
 
 async function addCat() {
